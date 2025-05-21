@@ -1,0 +1,41 @@
+FROM nvcr.io/nvidia/l4t-base:r35.4.1
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    python3-pip \
+    python3-dev \
+    libopencv-dev \
+    libpcl-dev \
+    libeigen3-dev \
+    libgflags-dev \
+    libgoogle-glog-dev \
+    libusb-1.0-0-dev \
+    lsb-release \
+    gnupg2
+
+# Install ROS Noetic
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 && \
+    apt-get update && apt-get install -y \
+    ros-noetic-ros-base \
+    ros-noetic-cv-bridge \
+    ros-noetic-pcl-ros \
+    ros-noetic-velodyne \
+    python3-rosdep \
+    python3-catkin-tools
+
+# Initialize rosdep
+RUN rosdep init && rosdep update
+
+# Working directory setup
+WORKDIR /workspace
+RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+
+# Set environment variables
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}

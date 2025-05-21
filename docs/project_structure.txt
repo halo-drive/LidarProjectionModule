@@ -1,0 +1,87 @@
+LidarProjectionLane/
+├── CMakeLists.txt
+├── package.xml
+├── .gitignore
+├── scripts/                          # Utility scripts
+│   ├── setup_environment.sh          # Environment setup script
+│   ├── build.sh                      # Build script
+│   └── calibration_collection.py     # Data collection for calibration
+├── config/                           # Configuration files
+│   ├── camera_params/                # Camera calibration parameters
+│   │   ├── camera0.yaml
+│   │   └── camera1.yaml
+│   ├── lidar_params/                 # LiDAR configuration
+│   │   ├── vlp16_0.yaml
+│   │   └── vlp16_1.yaml
+│   ├── network_params/               # Neural network configurations
+│   │   └── yolov8n_seg_lane.yaml
+│   └── system_config.yaml            # Overall system parameters
+├── calibration/                      # Calibration utilities
+│   ├── include/
+│   │   └── calibration/
+│   │       ├── camera_calibrator.hpp
+│   │       ├── lidar_calibrator.hpp
+│   │       └── extrinsic_calibrator.hpp
+│   ├── src/
+│   │   ├── camera_calibrator.cpp     # Camera intrinsic calibration
+│   │   ├── lidar_calibrator.cpp      # LiDAR calibration
+│   │   └── extrinsic_calibrator.cpp  # Camera-LiDAR calibration
+│   └── tools/
+│       ├── calibration_node.cpp      # ROS2 node for calibration
+│       └── calibration_board.cpp     # Calibration target detector
+├── lane_detection/                   # Lane detection module
+│   ├── include/
+│   │   └── lane_detection/
+│   │       ├── yolo_detector.hpp     # YOLO inference interface
+│   │       ├── lane_segmentation.hpp # Lane segmentation utilities
+│   │       └── tensor_utils.hpp      # TensorRT utilities
+│   ├── src/
+│   │   ├── yolo_detector.cpp         # YOLO inference implementation
+│   │   ├── lane_segmentation.cpp     # Lane post-processing
+│   │   └── tensor_utils.cpp          # TensorRT helper functions
+│   └── models/
+│       └── yolov8n-seg-lane.engine   # TensorRT optimized model (gitignored)
+├── lidar_processing/                 # LiDAR processing module
+│   ├── include/
+│   │   └── lidar_processing/
+│   │       ├── point_cloud_proc.hpp  # Point cloud processing
+│   │       ├── ground_extraction.hpp # Ground plane extraction
+│   │       └── point_types.hpp       # Custom point types
+│   ├── src/
+│   │   ├── point_cloud_proc.cpp      # Point cloud preprocessing
+│   │   └── ground_extraction.cpp     # Ground plane extraction algorithm
+│   └── cuda/
+│       ├── ground_extraction.cu      # CUDA kernel for ground extraction
+│       └── voxel_grid.cu             # CUDA point cloud downsampling
+├── fusion/                           # Sensor fusion module
+│   ├── include/
+│   │   └── fusion/
+│   │       ├── projection.hpp        # Projection algorithms
+│   │       ├── lane_model.hpp        # 3D lane model definition
+│   │       └── cuda_utils.hpp        # CUDA utility functions
+│   ├── src/
+│   │   ├── projection.cpp            # CPU implementation
+│   │   ├── lane_model.cpp            # Lane model fitting
+│   │   └── lane_fusion_node.cpp      # Main fusion ROS2 node
+│   └── cuda/
+│       ├── projection_kernels.cu     # CUDA projection implementation
+│       └── lane_fitting_kernels.cu   # CUDA RANSAC implementation
+├── utils/                            # Utility library
+│   ├── include/
+│   │   └── utils/
+│   │       ├── time_sync.hpp         # Time synchronization
+│   │       ├── memory_management.hpp # Memory optimization
+│   │       └── visualization.hpp     # Visualization utilities
+│   └── src/
+│       ├── time_sync.cpp             # Sensor synchronization
+│       ├── memory_management.cpp     # Memory pool implementation
+│       └── visualization.cpp         # Visualization for debugging
+├── launch/                           # ROS2 launch files
+│   ├── sensors.launch.py             # Launch sensors
+│   ├── calibration.launch.py         # Launch calibration
+│   └── lane_fusion.launch.py         # Launch full system
+└── tests/                            # Unit and integration tests
+    ├── test_calibration.cpp
+    ├── test_projection.cpp
+    ├── test_lane_detection.cpp
+    └── test_lane_model.cpp

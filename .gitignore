@@ -1,0 +1,92 @@
+# Build artifacts
+build/
+devel/
+install/
+.catkin_workspace
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# CMake generated files
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+# Model files (potentially large)
+*.pt
+*.pth
+*.onnx
+*.engine
+lane_detection/models/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*~
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ROS specific
+.catkin_tools/
+logs/
+.rosinstall
+.catkin
+
+# Data files
+*.bag
+*.csv
+*.yaml
+!config/**/*.yaml  # Keep config yaml files
+!launch/**/*.yaml  # Keep launch yaml files
+
+# Calibration data
+calibration/data/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
