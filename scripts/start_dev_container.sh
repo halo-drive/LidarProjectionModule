@@ -19,6 +19,7 @@ docker run --gpus all -it \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v /opt/ros/noetic:/opt/ros/noetic:ro \
   -v ~/ws_vel:/workspace/ws_vel:ro \
+  -v ~/pytorch_builds:/workspace/pytorch_builds:ro \
   -e DISPLAY=$DISPLAY \
   -e QT_X11_NO_MITSHM=1 \
   -e ROS_MASTER_URI=http://host.docker.internal:11311 \
