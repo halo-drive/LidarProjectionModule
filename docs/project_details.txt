@@ -1,5 +1,5 @@
 Projection-Based Fusion for Lanes
-Specific to your lane detection needs with YOLOv8n-seg-lane:
+Specific to  lane detection needs with YOLOv8n-seg-lane:
 
 Camera → YOLOv8n-seg-lane → Lane Mask
                                  ↓

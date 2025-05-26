@@ -2,21 +2,22 @@
 # Build PyTorch 2.1.0 with CUDA 11.4 support
 set -e
 
-BUILD_DIR="/workspace/pytorch_builds/cuda11.4_torch2.1.0"
-WHEELS_DIR="/workspace/pytorch_builds/wheels"
+LOCAL_BUILD_DIR="/tmp/pytorch_build"
+MOUNT_BUILD_DIR="/workspace/pytorch_builds/cuda11.4_torch2.1.0"
+MOUNT_WHEELS_DIR="/workspace/pytorch_builds/wheels"
 
 echo "Building PyTorch 2.1.0 with CUDA 11.4 support..."
-echo "Build directory: $BUILD_DIR"
-echo "Wheels directory: $WHEELS_DIR"
+echo "Local build directory: $LOCAL_BUILD_DIR"
+echo "Mounted wheels directory: $MOUNT_WHEELS_DIR"
 
-# Create directories
-mkdir -p "$BUILD_DIR"
-mkdir -p "$WHEELS_DIR"
+# Create local directories
+mkdir -p "$LOCAL_BUILD_DIR"
+mkdir -p "$MOUNT_WHEELS_DIR" || echo "Warning: Cannot create wheels directory"
 
 # Check if already built
-if [ -f "$WHEELS_DIR/torch-2.1.0-*.whl" ]; then
+if [ -f "$MOUNT_WHEELS_DIR"/torch-2.1.0-*.whl ]; then
     echo "PyTorch wheel already exists. Installing..."
-    pip3 install "$WHEELS_DIR"/torch-2.1.0-*.whl --force-reinstall
+    pip3 install "$MOUNT_WHEELS_DIR"/torch-2.1.0-*.whl --force-reinstall
     exit 0
 fi
 
@@ -57,8 +58,8 @@ export MAX_JOBS=4
 export CC="ccache gcc"
 export CXX="ccache g++"
 
-# Clone PyTorch if not exists
-cd "$BUILD_DIR"
+# Clone PyTorch to local directory
+cd "$LOCAL_BUILD_DIR"
 if [ ! -d "pytorch" ]; then
     echo "Cloning PyTorch..."
     git clone --recursive https://github.com/pytorch/pytorch.git
@@ -76,15 +77,21 @@ git submodule update --init --recursive
 python3 setup.py clean
 
 echo "Starting PyTorch build (this will take 1-3 hours)..."
-echo "Progress will be saved to $BUILD_DIR/build.log"
+echo "Progress will be saved to $LOCAL_BUILD_DIR/build.log"
 
 # Build with output logging
-python3 setup.py bdist_wheel 2>&1 | tee "$BUILD_DIR/build.log"
+python3 setup.py bdist_wheel 2>&1 | tee "$LOCAL_BUILD_DIR/build.log"
 
-# Copy wheel to persistent location
-cp dist/torch-2.1.0-*.whl "$WHEELS_DIR/"
+# Copy wheel to mounted location
+echo "Copying wheel to mounted directory..."
+cp dist/torch-2.1.0-*.whl "$MOUNT_WHEELS_DIR/" || {
+    echo "Failed to copy to mounted directory. Installing from local build..."
+    pip3 install dist/torch-2.1.0-*.whl
+    echo "PyTorch installed locally. Wheel saved in $LOCAL_BUILD_DIR/pytorch/dist/"
+    exit 0
+}
 
 echo "Build complete! Installing wheel..."
-pip3 install "$WHEELS_DIR"/torch-2.1.0-*.whl
+pip3 install "$MOUNT_WHEELS_DIR"/torch-2.1.0-*.whl
 
 echo "PyTorch 2.1.0 with CUDA 11.4 successfully built and installed!"
