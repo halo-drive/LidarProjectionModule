@@ -1,0 +1,214 @@
+# LidarProjectionLane Execution Pipeline
+
+## System Architecture Flow
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Data Sources  │    │   Processing    │    │   Fusion Output │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ Camera0 Stream  │───▶│ YOLOv8n-seg     │───▶│                 │
+│ /camera0/image  │    │ Lane Detection  │    │                 │
+├─────────────────┤    ├─────────────────┤    │   3D Lane Model │
+│ Camera1 Stream  │───▶│ YOLOv8n-seg     │───▶│                 │
+│ /camera1/image  │    │ Lane Detection  │    │                 │
+├─────────────────┤    ├─────────────────┤    │                 │
+│ LiDAR0 Stream   │───▶│ Point Cloud     │───▶│                 │
+│ /velodyne_points│    │ Processing      │    │                 │
+├─────────────────┤    ├─────────────────┤    │                 │
+│ LiDAR1 Stream   │───▶│ Point Cloud     │───▶│                 │
+│ /velodyne_pts_1 │    │ Processing      │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+## Phase-by-Phase Execution
+
+### **Phase 1-2: System Initialization**
+```bash
+# 1. Build the project
+cd /workspace/LidarProjectionLane
+catkin_make
+
+# 2. Source the workspace
+source devel/setup.bash
+
+# 3. Launch sensor drivers
+roslaunch lane_fusion sensors.launch
+```
+
+**What Happens:**
+- USB cameras start publishing to `/camera0/image_raw` and `/camera1/image_raw`
+- VLP-16 LiDAR publishes to `/velodyne_points` (via ws_vel workspace)
+- Static transforms establish coordinate relationships
+- All sensors are synchronized to common timebase
+
+### **Phase 3: Lane Detection Pipeline**
+```bash
+# Launch YOLOv8 inference nodes
+rosrun lane_fusion yolo_detector_node _camera_id:=0
+rosrun lane_fusion yolo_detector_node _camera_id:=1
+```
+
+**Data Flow:**
+1. **Image Preprocessing**: 640×480 → 416×416 (YOLOv8 input requirement)
+2. **TensorRT Inference**: YOLOv8n-seg-lane processes image
+3. **Output Processing**:
+   - Detection: [1, 37, 3549] → Bounding boxes
+   - Segmentation: [1, 32, 104, 104] → Lane masks
+4. **Mask Upsampling**: 104×104 → 640×480 lane segmentation
+
+### **Phase 4-5: LiDAR Processing Pipeline**
+```bash
+# Launch LiDAR processing nodes
+rosrun lane_fusion lidar_processor_node _lidar_id:=0
+```
+
+**Processing Steps:**
+1. **Point Cloud Filtering**: Remove noise, range filtering
+2. **Ground Extraction**: RANSAC-based ground plane detection
+3. **Coordinate Transformation**: LiDAR frame → camera frame
+4. **Point Classification**: Ground vs non-ground points
+
+### **Phase 6-7: Projection-Based Fusion**
+```bash
+# Launch main fusion node
+rosrun lane_fusion lane_fusion_node
+```
+
+**Fusion Algorithm:**
+1. **Temporal Synchronization**:
+   - Exact timestamp matching between cameras and LiDAR
+   - ±1ms tolerance window
+2. **Lane Mask Projection**:
+   - Camera lane masks projected onto ground plane
+   - Creates 3D regions of interest
+3. **Point Correspondence**:
+   - LiDAR points filtered by projected lane regions
+   - Spatial correlation between visual and geometric features
+4. **3D Model Fitting**:
+   - RANSAC polynomial fitting to registered points
+   - Outlier rejection and confidence scoring
+
+### **Phase 8: Output Generation**
+```bash
+# Monitor fusion output
+rostopic echo /lane_fusion/lane_model
+rostopic echo /lane_fusion/debug_visualization
+```
+
+**Output Products:**
+- **3D Lane Models**: Polynomial curves with confidence bounds
+- **Lane Boundaries**: Precise 3D coordinates of lane edges
+- **Uncertainty Maps**: Confidence scores for each lane segment
+- **Debug Visualizations**: Intermediate processing results
+
+## Message Flow Architecture
+
+### **Sensor Data Topics**
+```
+/camera0/image_raw          -> sensor_msgs/Image (640×480)
+/camera1/image_raw          -> sensor_msgs/Image (640×480)
+/velodyne_points           -> sensor_msgs/PointCloud2 (~18K points)
+/velodyne_points_1         -> sensor_msgs/PointCloud2 (~18K points)
+```
+
+### **Processing Topics**
+```
+/camera0/lane_mask         -> sensor_msgs/Image (binary mask)
+/camera1/lane_mask         -> sensor_msgs/Image (binary mask)
+/lidar0/ground_points      -> sensor_msgs/PointCloud2 (filtered)
+/lidar0/object_points      -> sensor_msgs/PointCloud2 (filtered)
+```
+
+### **Fusion Topics**
+```
+/lane_fusion/lane_model    -> custom_msgs/LaneModel (3D polynomials)
+/lane_fusion/confidence    -> std_msgs/Float32MultiArray
+/lane_fusion/debug_viz     -> visualization_msgs/MarkerArray
+```
+
+## Real-Time Performance Targets
+
+### **Latency Budget (Total: 30ms)**
+- **Camera Processing**: 8-12ms per camera
+  - Image acquisition: 2ms
+  - YOLOv8 inference: 5-8ms
+  - Post-processing: 1-2ms
+- **LiDAR Processing**: 5-8ms
+  - Point cloud filtering: 2-3ms
+  - Ground extraction: 3-5ms
+- **Fusion Computation**: 10-15ms
+  - Projection operations: 3-5ms
+  - Correspondence: 2-3ms
+  - RANSAC fitting: 5-7ms
+
+### **Memory Usage**
+- **GPU Memory**: 2-3GB
+  - Model weights: 500MB
+  - Input/output buffers: 1GB
+  - Intermediate results: 1-1.5GB
+- **CPU Memory**: 512MB-1GB
+  - Point cloud storage: 300MB
+  - Image buffers: 200MB
+
+## Failure Modes and Recovery
+
+### **Sensor Failures**
+- **Camera Loss**: Continue with single-camera operation
+- **LiDAR Loss**: Degrade to vision-only lane detection
+- **Synchronization Loss**: Increase tolerance window temporarily
+
+### **Processing Failures**
+- **YOLOv8 Inference Timeout**: Skip frame, use previous result
+- **Ground Extraction Failure**: Use backup plane estimation
+- **Fusion Convergence Issues**: Fall back to individual sensor results
+
+## Development and Testing Workflow
+
+### **Unit Testing**
+```bash
+# Test individual components
+rostest lane_fusion test_calibration.launch
+rostest lane_fusion test_projection.launch
+rostest lane_fusion test_lane_detection.launch
+```
+
+### **Integration Testing**
+```bash
+# Test full pipeline with recorded data
+rosbag play test_data.bag
+roslaunch lane_fusion lane_fusion.launch
+```
+
+### **Performance Profiling**
+```bash
+# Monitor system performance
+rostopic hz /camera0/image_raw
+rostopic hz /lane_fusion/lane_model
+nvidia-smi -l 1  # GPU monitoring
+htop             # CPU monitoring
+```
+
+## Configuration Management
+
+### **Runtime Parameter Adjustment**
+```bash
+# Adjust detection thresholds
+rosparam set /lane_detection/confidence_threshold 0.7
+
+# Modify fusion parameters
+rosparam set /lane_fusion/ransac_iterations 1500
+
+# Update synchronization tolerance
+rosparam set /fusion/sync_tolerance 0.002
+```
+
+### **Calibration Updates**
+```bash
+# Update camera calibration
+rosservice call /camera_calibration/update_params
+
+# Refresh extrinsic calibration
+rosservice call /fusion/recalibrate
+```
+
+This pipeline ensures robust, real-time lane detection through multi-modal sensor fusion with systematic error handling and performance optimization.
