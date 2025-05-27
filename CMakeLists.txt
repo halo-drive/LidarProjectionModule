@@ -12,6 +12,20 @@ endif()
 
 # Find ROS1 packages
 find_package(catkin REQUIRED COMPONENTS
+        roscpp
+        rospy
+        std_msgs
+        sensor_msgs
+        geometry_msgs
+        cv_bridge
+        image_transport
+        pcl_ros
+        velodyne_msgs
+        message_filters
+        tf2
+        tf2_ros
+        tf2_geometry_msgs
+        message_generation
   roscpp
   std_msgs
   sensor_msgs
@@ -25,10 +39,35 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_conversions
 )
 
+# Find system dependencies
+find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common io features search kdtree)
+find_package(CUDA REQUIRED)
 # Find other dependencies
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+# Optional: Find TensorRT (for Phase 3)
+find_path(TENSORRT_INCLUDE_DIR NvInfer.h
+        HINTS ${TENSORRT_ROOT} ${CUDA_TOOLKIT_ROOT_DIR}
+        PATH_SUFFIXES include)
+find_library(TENSORRT_LIBRARY nvinfer
+        HINTS ${TENSORRT_ROOT} ${CUDA_TOOLKIT_ROOT_DIR}
+        PATH_SUFFIXES lib lib64 lib/x64)
+
+if(TENSORRT_INCLUDE_DIR AND TENSORRT_LIBRARY)
+    set(TENSORRT_FOUND TRUE)
+    message(STATUS "Found TensorRT: ${TENSORRT_LIBRARY}")
+else()
+    set(TENSORRT_FOUND FALSE)
+    message(WARNING "TensorRT not found - will be needed for Phase 3")
+endif()
+
+# CUDA compilation flags for x86 platform
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -gencode arch=compute_75,code=sm_75)
+
+
+# Declare catkin package
 # Find CUDA (optional) - suppress warnings
 if(POLICY CMP0146)
   cmake_policy(SET CMP0146 OLD)
@@ -44,6 +83,35 @@ endif()
 
 # Catkin package setup
 catkin_package(
+        INCLUDE_DIRS
+        include
+        ${EIGEN3_INCLUDE_DIRS}
+        LIBRARIES
+        ${PROJECT_NAME}_utils
+        ${PROJECT_NAME}_calibration
+        ${PROJECT_NAME}_lane_detection
+        ${PROJECT_NAME}_lidar_processing
+        ${PROJECT_NAME}_fusion
+        CATKIN_DEPENDS
+        roscpp
+        rospy
+        std_msgs
+        sensor_msgs
+        geometry_msgs
+        cv_bridge
+        image_transport
+        pcl_ros
+        velodyne_msgs
+        message_filters
+        tf2
+        tf2_ros
+        tf2_geometry_msgs
+        message_runtime
+        DEPENDS
+        OpenCV
+        PCL
+        CUDA
+        Eigen3
   INCLUDE_DIRS 
     lidar_processing/include
   LIBRARIES 
