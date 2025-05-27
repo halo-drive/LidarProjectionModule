@@ -23,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
         tf2
         tf2_ros
         tf2_geometry_msgs
-        message_generation
 )
 
 # Find system dependencies
@@ -51,18 +50,8 @@ endif()
 # CUDA compilation flags for x86 platform
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -gencode arch=compute_75,code=sm_75)
 
-
-# Declare catkin package
+# Declare catkin package (minimal for Phase 1-2)
 catkin_package(
-        INCLUDE_DIRS
-        include
-        ${EIGEN3_INCLUDE_DIRS}
-        LIBRARIES
-        ${PROJECT_NAME}_utils
-        ${PROJECT_NAME}_calibration
-        ${PROJECT_NAME}_lane_detection
-        ${PROJECT_NAME}_lidar_processing
-        ${PROJECT_NAME}_fusion
         CATKIN_DEPENDS
         roscpp
         rospy
@@ -77,17 +66,14 @@ catkin_package(
         tf2
         tf2_ros
         tf2_geometry_msgs
-        message_runtime
         DEPENDS
         OpenCV
         PCL
         CUDA
-        Eigen3
 )
 
-# Include directories
+# Include directories (only existing ones)
 include_directories(
-        include
         ${catkin_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
@@ -104,16 +90,13 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic -O3)
 endif()
 
-# Add subdirectories for different modules
-add_subdirectory(utils)
-add_subdirectory(calibration)
-add_subdirectory(lane_detection)
-add_subdirectory(lidar_processing)
-add_subdirectory(fusion)
+# Phase 3+ will add subdirectories and libraries here
+# For now, just ensure the build system works
 
-# Install launch files
+# Install launch files (corrected syntax)
 install(DIRECTORY launch/
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+        FILES_MATCHING PATTERN "*.launch" PATTERN "*.py"
         PATTERN ".svn" EXCLUDE)
 
 # Install config files
@@ -132,5 +115,18 @@ install(PROGRAMS
 # Testing (optional)
 if(CATKIN_ENABLE_TESTING)
     find_package(rostest REQUIRED)
-    add_subdirectory(tests)
+    # Phase 3+ will add tests here
 endif()
+
+# Build status message
+message(STATUS "=== LidarProjectionLane Build Configuration ===")
+message(STATUS "OpenCV: ${OpenCV_VERSION}")
+message(STATUS "PCL: Found")
+message(STATUS "CUDA: ${CUDA_VERSION}")
+message(STATUS "Eigen3: ${EIGEN3_VERSION}")
+if(TENSORRT_FOUND)
+    message(STATUS "TensorRT: Found")
+else()
+    message(STATUS "TensorRT: Not found (needed for Phase 3)")
+endif()
+message(STATUS "==============================================")

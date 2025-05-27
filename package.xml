@@ -2,37 +2,86 @@
 <package format="2">
     <name>lane_fusion</name>
     <version>1.0.0</version>
-    <description>Projection-based LiDAR-camera fusion for lane detection</description>
+    <description>
+        Projection-based LiDAR-camera fusion system for autonomous vehicle lane detection.
+        Combines YOLOv8n-seg-lane computer vision with VLP-16 LiDAR point cloud processing
+        to generate robust 3D lane models using geometric projection and RANSAC fitting.
+    </description>
 
-    <maintainer email="dev@lanefusion.com">Lane Fusion Team</maintainer>
-    <license>MIT</license>
+    <maintainer email="dev@lanefusion.com">Lane Fusion Development Team</maintainer>
+    <license>HALO</license>
+    <url type="website">https://github.com/lanefusion/LidarProjectionLane</url>
+    <url type="bugtracker">https://github.com/lanefusion/LidarProjectionLane/issues</url>
+    <url type="repository">https://github.com/lanefusion/LidarProjectionLane</url>
 
+    <author email="ashwin@drivehalo.com">Lane Fusion Development Team</author>
+
+    <!-- Build tool dependencies -->
     <buildtool_depend>catkin</buildtool_depend>
 
-    <!-- ROS dependencies -->
-    <depend>roscpp</depend>
-    <depend>rospy</depend>
-    <depend>std_msgs</depend>
-    <depend>sensor_msgs</depend>
-    <depend>geometry_msgs</depend>
-    <depend>cv_bridge</depend>
-    <depend>image_transport</depend>
-    <depend>pcl_ros</depend>
-    <depend>velodyne_msgs</depend>
-    <depend>message_filters</depend>
-    <depend>tf2</depend>
-    <depend>tf2_ros</depend>
-    <depend>tf2_geometry_msgs</depend>
+    <!-- Build dependencies -->
+    <build_depend>cmake</build_depend>
+    <build_depend>roscpp</build_depend>
+    <build_depend>rospy</build_depend>
+    <build_depend>std_msgs</build_depend>
+    <build_depend>sensor_msgs</build_depend>
+    <build_depend>geometry_msgs</build_depend>
+    <build_depend>cv_bridge</build_depend>
+    <build_depend>image_transport</build_depend>
+    <build_depend>pcl_ros</build_depend>
+    <build_depend>velodyne_msgs</build_depend>
+    <build_depend>message_filters</build_depend>
+    <build_depend>tf2</build_depend>
+    <build_depend>tf2_ros</build_depend>
+    <build_depend>tf2_geometry_msgs</build_depend>
+
+    <!-- Build export dependencies -->
+    <build_export_depend>roscpp</build_export_depend>
+    <build_export_depend>rospy</build_export_depend>
+    <build_export_depend>std_msgs</build_export_depend>
+    <build_export_depend>sensor_msgs</build_export_depend>
+    <build_export_depend>geometry_msgs</build_export_depend>
+    <build_export_depend>cv_bridge</build_export_depend>
+    <build_export_depend>image_transport</build_export_depend>
+    <build_export_depend>pcl_ros</build_export_depend>
+    <build_export_depend>velodyne_msgs</build_export_depend>
+    <build_export_depend>message_filters</build_export_depend>
+    <build_export_depend>tf2</build_export_depend>
+    <build_export_depend>tf2_ros</build_export_depend>
+    <build_export_depend>tf2_geometry_msgs</build_export_depend>
+
+    <!-- Runtime dependencies -->
+    <exec_depend>roscpp</exec_depend>
+    <exec_depend>rospy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+    <exec_depend>sensor_msgs</exec_depend>
+    <exec_depend>geometry_msgs</exec_depend>
+    <exec_depend>cv_bridge</exec_depend>
+    <exec_depend>image_transport</exec_depend>
+    <exec_depend>pcl_ros</exec_depend>
+    <exec_depend>velodyne_msgs</exec_depend>
+    <exec_depend>message_filters</exec_depend>
+    <exec_depend>tf2</exec_depend>
+    <exec_depend>tf2_ros</exec_depend>
+    <exec_depend>tf2_geometry_msgs</exec_depend>
+
+    <!-- Additional tool dependencies -->
+    <exec_depend>usb_cam</exec_depend>
+    <exec_depend>topic_tools</exec_depend>
+    <exec_depend>rqt_image_view</exec_depend>
+    <exec_depend>rviz</exec_depend>
 
     <!-- System dependencies -->
     <depend>libopencv-dev</depend>
     <depend>libpcl-dev</depend>
     <depend>libeigen3-dev</depend>
 
-    <!-- Build dependencies -->
-    <build_depend>cmake</build_depend>
+    <!-- Test dependencies -->
+    <test_depend>rostest</test_depend>
+    <test_depend>rosunit</test_depend>
+    <test_depend>gtest</test_depend>
 
     <export>
-        <build_type>cmake</build_type>
+        <build_type>catkin</build_type>
     </export>
 </package>
