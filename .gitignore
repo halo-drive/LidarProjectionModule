@@ -79,8 +79,6 @@ logs/
 *.bag
 *.csv
 *.yaml
-!config/**/*.yaml  # Keep config yaml files
-!launch/**/*.yaml  # Keep launch yaml files
 
 # Calibration data
 calibration/data/

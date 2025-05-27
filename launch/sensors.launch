@@ -5,7 +5,7 @@
 <launch>
   <!-- Launch Arguments -->
   <arg name="enable_camera0" default="true" />
-  <arg name="enable_camera1" default="false" />
+  <arg name="enable_camera1" default="true" />
   <arg name="enable_lidar0" default="true" />
   <arg name="enable_lidar1" default="true" />
   <arg name="debug_mode" default="true" />
