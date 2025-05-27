@@ -1,212 +1,112 @@
-<!--
-ROS1 Sensor Launch File - Phase 2
-LidarProjectionLane: Sensor Drivers & Data Acquisition
-
-Traditional XML launch file for ROS1 catkin ecosystem
-Launches dual cameras, dual LiDARs, and coordinate transforms
-
-Hardware Configuration:
-- Camera 0: /dev/video0 → /camera0/image_raw
-- Camera 1: /dev/video1 → /camera1/image_raw
-- LiDAR 0:  /velodyne_points → /lidar0/points
-- LiDAR 1:  /velodyne2/velodyne_points → /lidar1/points
-
-Author: Lane Fusion Development Team
-Phase: 2 - Sensor Drivers & Data Acquisition
--->
+<!-- Clean Sensor Launch File - Direct Namespace Configuration -->
+<!-- No topic relays needed - configure drivers directly -->
+<!-- Phase 2: Optimized sensor data acquisition system -->
 
 <launch>
   <!-- Launch Arguments -->
   <arg name="enable_camera0" default="true" />
-  <arg name="enable_camera1" default="true" />
+  <arg name="enable_camera1" default="false" />
   <arg name="enable_lidar0" default="true" />
   <arg name="enable_lidar1" default="true" />
-  <arg name="enable_visualization" default="true" />
   <arg name="debug_mode" default="true" />
 
   <!-- System Configuration Parameters -->
   <rosparam file="$(find lane_fusion)/config/system_config.yaml" command="load" />
 
-  <!-- Camera 0 Configuration -->
+  <!-- ===== USB CAMERA SECTION ===== -->
+  <!-- Camera 0: Direct to /camera0/ namespace -->
   <group ns="camera0" if="$(arg enable_camera0)">
-    <node name="usb_cam_node" pkg="usb_cam" type="usb_cam_node" output="screen" respawn="true">
-      <!-- Hardware Parameters -->
+    <node name="usb_cam_node" pkg="usb_cam" type="usb_cam_node" output="screen" respawn="false">
       <param name="video_device" value="/dev/video0" />
       <param name="image_width" value="640" />
       <param name="image_height" value="480" />
-      <param name="pixel_format" value="yuyv" />  <!-- Fixed buffer mismatch -->
+      <param name="pixel_format" value="yuyv" />
       <param name="io_method" value="mmap" />
       <param name="framerate" value="30" />
-
-      <!-- ROS Parameters -->
       <param name="camera_frame_id" value="camera0_link" />
       <param name="camera_name" value="camera0" />
-      <param name="camera_info_url" value="file://$(find lane_fusion)/config/camera_params/camera0.yaml" />
-
-      <!-- USB Camera Optimization -->
       <param name="auto_focus" value="false" />
       <param name="auto_exposure" value="true" />
       <param name="auto_white_balance" value="true" />
-      <param name="brightness" value="0" />
-      <param name="contrast" value="0" />
-      <param name="saturation" value="0" />
-      <param name="hue" value="0" />
-      <param name="gamma" value="100" />
-
-      <!-- Performance Parameters -->
-      <param name="camera_timeout" value="1000" />  <!-- 1 second timeout -->
-      <param name="skip_frames" value="0" />
+      <param name="camera_timeout" value="1000" />
     </node>
-
-    <!-- Load camera-specific parameters -->
-    <rosparam file="$(find lane_fusion)/config/camera_params/camera0.yaml" command="load" />
   </group>
 
-  <!-- Camera 1 Configuration -->
-  <group ns="camera1" if="$(arg enable_camera1)">
-    <node name="usb_cam_node" pkg="usb_cam" type="usb_cam_node" output="screen" respawn="true">
-      <!-- Hardware Parameters -->
-      <param name="video_device" value="/dev/video1" />
-      <param name="image_width" value="640" />
-      <param name="image_height" value="480" />
-      <param name="pixel_format" value="yuyv" />  <!-- Fixed buffer mismatch -->
-      <param name="io_method" value="mmap" />
-      <param name="framerate" value="30" />
+  <!-- ===== VLP-16 LIDAR SECTION ===== -->
+  <!-- LiDAR 0: Direct to /lidar0/ namespace -->
+  <group ns="lidar0" if="$(arg enable_lidar0)">
+    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen"/>
 
-      <!-- ROS Parameters -->
-      <param name="camera_frame_id" value="camera1_link" />
-      <param name="camera_name" value="camera1" />
-      <param name="camera_info_url" value="file://$(find lane_fusion)/config/camera_params/camera1.yaml" />
-
-      <!-- USB Camera Optimization -->
-      <param name="auto_focus" value="false" />
-      <param name="auto_exposure" value="true" />
-      <param name="auto_white_balance" value="true" />
-      <param name="brightness" value="0" />
-      <param name="contrast" value="0" />
-      <param name="saturation" value="0" />
-      <param name="hue" value="0" />
-      <param name="gamma" value="100" />
-
-      <!-- Performance Parameters -->
-      <param name="camera_timeout" value="1000" />  <!-- 1 second timeout -->
-      <param name="skip_frames" value="0" />
+    <node pkg="nodelet" type="nodelet" name="driver_nodelet"
+          args="load velodyne_driver/DriverNodelet nodelet_manager" output="screen">
+      <param name="device_ip" value="192.168.2.201"/>
+      <param name="model" value="VLP16"/>
+      <param name="port" value="2368"/>
+      <param name="frame_id" value="lidar0_link"/>
+      <param name="rpm" value="600"/>
     </node>
 
-    <!-- Load camera-specific parameters -->
-    <rosparam file="$(find lane_fusion)/config/camera_params/camera1.yaml" command="load" />
+    <node pkg="nodelet" type="nodelet" name="pointcloud_nodelet"
+          args="load velodyne_pointcloud/TransformNodelet nodelet_manager" output="screen">
+      <param name="calibration" value="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+      <param name="min_range" value="0.4"/>
+      <param name="max_range" value="100.0"/>
+      <param name="frame_id" value="lidar0_link"/>
+      <param name="organize_cloud" value="false"/>
+      <param name="model" value="VLP16"/>
+    </node>
   </group>
 
-  <!-- LiDAR Topic Routing -->
-  <!-- Primary VLP-16 topic relay (verified: /velodyne_points exists) -->
-  <node name="lidar0_relay" pkg="topic_tools" type="relay"
-        args="/velodyne_points /lidar0/points"
-        output="screen" respawn="true" if="$(arg enable_lidar0)">
-    <param name="lazy" value="false" />
-  </node>
+  <!-- LiDAR 1: Direct to /lidar1/ namespace -->
+  <group ns="lidar1" if="$(arg enable_lidar1)">
+    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen"/>
 
-  <!-- Secondary VLP-16 topic relay (verified: /velodyne2/velodyne_points exists) -->
-  <node name="lidar1_relay" pkg="topic_tools" type="relay"
-        args="/velodyne2/velodyne_points /lidar1/points"
-        output="screen" respawn="true" if="$(arg enable_lidar1)">
-    <param name="lazy" value="false" />
-  </node>
+    <node pkg="nodelet" type="nodelet" name="driver_nodelet"
+          args="load velodyne_driver/DriverNodelet nodelet_manager" output="screen">
+      <param name="device_ip" value="192.168.2.202"/>
+      <param name="model" value="VLP16"/>
+      <param name="port" value="2368"/>
+      <param name="frame_id" value="lidar1_link"/>
+      <param name="rpm" value="600"/>
+    </node>
 
-  <!-- Static Transform Publishers -->
-  <!-- Coordinate frame definitions based on verified hardware setup -->
+    <node pkg="nodelet" type="nodelet" name="pointcloud_nodelet"
+          args="load velodyne_pointcloud/TransformNodelet nodelet_manager" output="screen">
+      <param name="calibration" value="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+      <param name="min_range" value="0.4"/>
+      <param name="max_range" value="100.0"/>
+      <param name="frame_id" value="lidar1_link"/>
+      <param name="organize_cloud" value="false"/>
+      <param name="model" value="VLP16"/>
+    </node>
+  </group>
 
-  <!-- Base Link to Camera 0 Transform -->
+  <!-- ===== COORDINATE TRANSFORMS SECTION ===== -->
+  <!-- Static Transform Publishers - Consistent naming -->
+
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
-        args="0.0 -0.1 0.0 0.0 0.0 0.0 base_link camera0_link"
+        args="0.0 0.0 0.0 0.0 0.0 0.0 base_link camera0_link"
         if="$(arg enable_camera0)" />
 
-  <!-- Base Link to Camera 1 Transform -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera1"
-        args="0.0 0.1 0.0 0.0 0.0 0.0 base_link camera1_link"
-        if="$(arg enable_camera1)" />
-
-  <!-- Base Link to LiDAR 0 Transform (verified frame: velodyne) -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar0"
-        args="0.0 0.0 1.8 0.0 0.0 0.0 base_link velodyne"
+        args="0.0 0.0 1.8 0.0 0.0 0.0 base_link lidar0_link"
         if="$(arg enable_lidar0)" />
 
-  <!-- Base Link to LiDAR 1 Transform (verified frame: velodyne2) -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar1"
-        args="0.0 0.0 1.8 0.0 0.0 0.0 base_link velodyne2"
+        args="0.0 0.0 1.8 0.0 0.0 0.0 base_link lidar1_link"
         if="$(arg enable_lidar1)" />
 
-  <!-- Parameter Loading for Sensor Configurations -->
-  <rosparam file="$(find lane_fusion)/config/lidar_params/vlp16_0.yaml" command="load" ns="lidar0" if="$(arg enable_lidar0)" />
-  <rosparam file="$(find lane_fusion)/config/lidar_params/vlp16_1.yaml" command="load" ns="lidar1" if="$(arg enable_lidar1)" />
-
-  <!-- Diagnostic and Health Monitoring -->
+  <!-- ===== DIAGNOSTIC SECTION ===== -->
   <group if="$(arg debug_mode)">
-    <!-- Robot State Publisher for transform visualization -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher">
-      <param name="publish_frequency" value="50.0" />
-    </node>
-
-    <!-- Diagnostic Aggregator -->
-    <node name="diagnostic_aggregator" pkg="diagnostic_aggregator" type="aggregator_node">
+    <node name="diagnostic_aggregator" pkg="diagnostic_aggregator" type="aggregator_node" output="screen">
       <rosparam>
         analyzers:
           sensors:
-            type: GenericAnalyzer
+            type: diagnostic_aggregator/GenericAnalyzer
             path: Sensors
-            contains: ['camera', 'lidar', 'usb_cam']
-          transforms:
-            type: GenericAnalyzer
-            path: Transforms
-            contains: ['tf', 'transform']
+            contains: ['camera', 'lidar', 'usb_cam', 'velodyne']
       </rosparam>
     </node>
   </group>
-
-  <!-- Visualization Tools -->
-  <group if="$(arg enable_visualization)">
-    <!-- Image View for Camera Debugging -->
-    <node name="camera0_view" pkg="image_view" type="image_view" respawn="false" if="$(arg enable_camera0)">
-      <remap from="image" to="/camera0/image_raw" />
-      <param name="autosize" value="true" />
-      <param name="window_name" value="Camera 0" />
-    </node>
-
-    <node name="camera1_view" pkg="image_view" type="image_view" respawn="false" if="$(arg enable_camera1)">
-      <remap from="image" to="/camera1/image_raw" />
-      <param name="autosize" value="true" />
-      <param name="window_name" value="Camera 1" />
-    </node>
-
-    <!-- RViz Configuration -->
-    <node name="rviz" pkg="rviz" type="rviz" respawn="false"
-          args="-d $(find lane_fusion)/config/rviz/sensors_debug.rviz"
-          if="$(arg enable_visualization)" />
-  </group>
-
-  <!-- Topic Monitoring and Validation -->
-  <group if="$(arg debug_mode)">
-    <!-- Topic Monitor -->
-    <node name="topic_monitor" pkg="roswtf" type="roswtf" output="screen">
-      <param name="run_online" value="true" />
-      <param name="check_connectivity" value="true" />
-    </node>
-  </group>
-
-  <!-- Launch Summary Information -->
-  <group>
-    <node name="launch_info" pkg="rospy_tutorials" type="talker" if="false">
-      <!-- Placeholder for launch information display -->
-    </node>
-  </group>
-
-  <!-- Post-Launch Verification Scripts -->
-  <!-- These can be uncommented for automated testing -->
-  <!--
-  <test test-name="sensor_verification" pkg="lane_fusion" type="test_sensors.py" time-limit="60.0">
-    <param name="expected_camera_topics" value="['/camera0/image_raw', '/camera1/image_raw']" />
-    <param name="expected_lidar_topics" value="['/lidar0/points', '/lidar1/points']" />
-    <param name="timeout" value="30.0" />
-  </test>
-  -->
 
 </launch>
