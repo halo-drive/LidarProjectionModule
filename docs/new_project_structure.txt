@@ -1,0 +1,102 @@
+pomo@pomo-nigesh:~/LidarProjectionModule$ tree
+.
+├── calibration
+│   ├── include
+│   │   └── calibration
+│   │       ├── camera_calibrator.hpp
+│   │       ├── extrinsic_calibrator.hpp
+│   │       └── lidar_calibrator.hpp
+│   ├── src
+│   │   ├── camera_calibrator.cpp
+│   │   ├── extrinsic_calibrator.cpp
+│   │   └── lidar_calibrator.cpp
+│   └── tools
+│       ├── calibration_board.cpp
+│       └── calibration_node.cpp
+├── checkenv.py
+├── cmake-build-debug
+│   └── build.ninja
+├── CMakeLists.txt
+├── config
+│   └── lidar_params
+│       ├── vlp16_0.yaml
+│       └── vlp16_1.yaml
+├── docker
+│   ├── Dockerfile.dev
+│   ├── Dockerfile.jetson
+│   └── setup_cross_compile.sh
+├── docker-compose.yml
+├── docs
+│   ├── module_documentation.txt
+│   ├── new_project_structure.txt
+│   ├── project_details.txt
+│   └── project_structure.txt
+├── fusion
+│   ├── cuda
+│   │   ├── lane_fitting_kernels.cu
+│   │   └── projection_kernels.cu
+│   ├── include
+│   │   └── fusion
+│   │       ├── cuda_utils.hpp
+│   │       ├── lane_model.hpp
+│   │       └── projection.hpp
+│   └── src
+│       ├── lane_fusion_node.cpp
+│       ├── lane_model.cpp
+│       └── projection.cpp
+├── lane_detection
+│   ├── include
+│   │   └── lane_detection
+│   │       ├── lane_segmentation.hpp
+│   │       ├── tensor_utils.hpp
+│   │       └── yolo_detector.hpp
+│   └── src
+│       ├── lane_segmentation.cpp
+│       ├── tensor_utils.cpp
+│       └── yolo_detector.cpp
+├── launch
+│   ├── calibration.launch.py
+│   ├── lane_fusion.launch.py
+│   └── sensors.launch.py
+├── lidar_processing
+│   ├── cuda
+│   │   ├── ground_extraction.cu
+│   │   └── voxel_grid.cu
+│   ├── include
+│   │   └── lidar_processing
+│   │       ├── ground_extraction.hpp
+│   │       ├── point_cloud_proc.hpp
+│   │       └── point_types.hpp
+│   └── src
+│       ├── ground_extraction.cpp
+│       ├── lidar_ground_extraction_node.cpp
+│       └── point_cloud_proc.cpp
+├── logs
+│   └── build_log.txt
+├── package.xml
+├── README.md
+├── scripts
+│   ├── build_pytorch.sh
+│   ├── build.sh
+│   ├── calibration_collection.py
+│   ├── checkenv.py
+│   ├── install_pytorch.sh
+│   ├── setup_environment.sh
+│   └── start_dev_container.sh
+├── tests
+│   ├── test_calibration.cpp
+│   ├── test_lane_detection.cpp
+│   ├── test_lane_model.cpp
+│   └── test_projection.cpp
+└── utils
+    ├── include
+    │   └── utils
+    │       ├── memory_management.hpp
+    │       ├── time_sync.hpp
+    │       └── visualization.hpp
+    └── src
+        ├── memory_management.cpp
+        ├── time_sync.cpp
+        └── visualization.cpp
+
+32 directories, 66 files
