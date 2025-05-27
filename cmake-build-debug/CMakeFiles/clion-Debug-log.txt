@@ -1,0 +1,9 @@
+/opt/clion-2024.2.1/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/opt/clion-2024.2.1/bin/ninja/linux/x64/ninja -G Ninja -S /home/pomo/LidarProjectionLane -B /home/pomo/LidarProjectionLane/cmake-build-debug
+CMake Error at /opt/clion-2024.2.1/bin/cmake/linux/x64/share/cmake-3.29/Modules/Internal/CMakeCUDAArchitecturesValidate.cmake:7 (message):
+  CMAKE_CUDA_ARCHITECTURES must be non-empty if set.
+Call Stack (most recent call first):
+  /opt/clion-2024.2.1/bin/cmake/linux/x64/share/cmake-3.29/Modules/CMakeDetermineCUDACompiler.cmake:112 (cmake_cuda_architectures_validate)
+  CMakeLists.txt:9 (enable_language)
+
+
+-- Configuring incomplete, errors occurred!

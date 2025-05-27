@@ -1,0 +1,209 @@
+# System Configuration for LidarProjectionLane
+# Phase 1-2: Core Infrastructure and Sensor Configuration
+# Optimized for x86 development platform with dual cameras and dual VLP-16 LiDARs
+
+# System-wide settings
+system:
+  debug_mode: true
+  visualization: true
+  log_level: "INFO"  # DEBUG, INFO, WARN, ERROR
+  max_log_file_size: "100MB"
+  log_rotation_count: 5
+
+# Platform-specific optimizations
+platform:
+  architecture: "x86_64"
+  gpu_support: true
+  cuda_device_id: 0
+  memory_management: "optimized"
+  thread_priority: "normal"
+
+# Sensor configuration
+sensors:
+  # Enable/disable individual sensors
+  enable_camera0: true
+  enable_camera1: true
+  enable_lidar0: true
+  enable_lidar1: true
+
+  # Sensor-specific settings
+  camera:
+    acquisition_timeout: 100  # milliseconds
+    buffer_size: 5
+    auto_exposure: true
+    auto_white_balance: true
+
+  lidar:
+    processing_timeout: 50   # milliseconds
+    buffer_size: 10
+    point_cloud_downsampling: false
+
+# Synchronization parameters
+synchronization:
+  # Exact time synchronization settings
+  exact_time_tolerance: 0.001  # 1ms tolerance for exact sync
+  queue_size: 10
+  max_interval_duration: 0.12  # 120ms max wait for message pairs
+
+  # Fallback to approximate time if exact fails
+  approximate_time_tolerance: 0.01  # 10ms tolerance for approximate sync
+  enable_fallback: true
+
+  # Interpolation settings
+  enable_interpolation: true
+  interpolation_method: "linear"
+  max_interpolation_gap: 0.05  # 50ms max gap for interpolation
+
+# Performance tuning
+performance:
+  # CPU settings
+  cpu_threads: 4
+  cpu_affinity: []  # Empty = no affinity, [0,1,2,3] = specific cores
+
+  # GPU settings
+  gpu_memory_fraction: 0.8
+  enable_cuda_profiling: false
+  cuda_streams: 2
+
+  # Memory management
+  enable_memory_pool: true
+  pool_initial_size: "100MB"
+  pool_max_size: "1GB"
+
+  # I/O optimization
+  async_io: true
+  prefetch_enabled: true
+  prefetch_buffer_size: 3
+
+# Fusion pipeline parameters (for Phase 6+)
+fusion_parameters:
+  # Projection settings
+  projection_height_threshold: 0.1  # meters
+  projection_roi_expansion: 1.2     # expand ROI by 20%
+
+  # RANSAC parameters
+  ransac_iterations: 1000
+  ransac_threshold: 0.05
+  ransac_probability: 0.99
+
+  # Confidence and filtering
+  confidence_threshold: 0.8
+  min_lane_points: 50
+  max_correspondence_distance: 0.5  # meters
+
+  # Temporal consistency
+  enable_tracking: true
+  track_history_length: 5
+  track_similarity_threshold: 0.7
+
+# Calibration settings
+calibration:
+  # Automatic calibration triggers
+  auto_recalibrate: false
+  recalibration_interval: 3600  # seconds (1 hour)
+
+  # Calibration quality thresholds
+  max_reprojection_error: 1.0   # pixels
+  min_calibration_samples: 20
+
+  # Extrinsic calibration
+  extrinsic_method: "pnp_ransac"
+  extrinsic_refinement: true
+
+# Network and model parameters (Phase 3+)
+network_params:
+  # Model optimization
+  use_tensorrt: true
+  tensorrt_precision: "FP16"  # FP32, FP16, INT8
+  tensorrt_workspace_size: 1073741824  # 1GB
+
+  # Inference settings
+  batch_size: 1
+  max_batch_latency: 10  # milliseconds
+
+  # Pre/post-processing
+  preprocessing_threads: 2
+  postprocessing_threads: 2
+
+# Visualization and debugging
+visualization:
+  enable_rviz: true
+  enable_image_debug: true
+  enable_pointcloud_debug: true
+
+  # Topic publishing
+  publish_debug_images: true
+  publish_intermediate_results: true
+  debug_image_scale: 0.5  # Scale down debug images
+
+  # Recording
+  auto_record_bags: false
+  bag_duration: 300  # seconds
+  bag_topics: ["/camera0/image_raw", "/camera1/image_raw", "/lidar0/velodyne_points", "/lidar1/velodyne_points"]
+
+# Error handling and recovery
+error_handling:
+  # Sensor failure recovery
+  sensor_timeout: 1.0  # seconds
+  max_consecutive_failures: 5
+  enable_sensor_recovery: true
+
+  # Processing failure recovery
+  max_processing_latency: 100  # milliseconds
+  enable_latency_monitoring: true
+  fallback_to_single_sensor: true
+
+  # System health monitoring
+  enable_health_monitoring: true
+  health_check_interval: 10  # seconds
+  publish_diagnostics: true
+
+# Development and testing
+development:
+  # Mock data for testing
+  enable_simulation_mode: false
+  mock_sensor_data: false
+  simulation_fps: 10
+
+  # Profiling and benchmarking
+  enable_profiling: false
+  profile_output_dir: "/tmp/lane_fusion_profiles"
+  benchmark_iterations: 100
+
+  # Unit testing
+  test_data_path: "test_data/"
+  generate_test_data: false
+
+# ROS-specific settings
+ros:
+  # Node settings
+  node_namespace: ""
+  use_sim_time: false
+
+  # Topic settings
+  topic_queue_size: 10
+  topic_transport_hints: "raw"
+
+  # Parameter server
+  use_parameter_server: true
+  parameter_namespace: "/lane_fusion"
+
+  # Services and actions
+  enable_reconfigure: true
+  enable_services: true
+
+# Hardware-specific optimizations
+hardware:
+  # x86 platform optimizations
+  enable_sse: true
+  enable_avx: true
+  enable_avx2: true
+
+  # GPU optimizations
+  gpu_compute_capability: "7.5"  # Adjust based on your GPU
+  enable_tensor_cores: true
+
+  # Memory optimizations
+  enable_pinned_memory: true
+  enable_zero_copy: true
+  memory_alignment: 32

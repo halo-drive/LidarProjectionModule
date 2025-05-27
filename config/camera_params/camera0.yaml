@@ -1,0 +1,129 @@
+# Camera 0 Configuration
+# Phase 2: Sensor Drivers & Data Acquisition
+# USB Camera (/dev/video0) - 120° FOV Model
+# Resolution: 640x480 optimized for YOLOv8 preprocessing (Phase 3)
+
+# Basic camera information
+camera_info:
+  width: 640
+  height: 480
+  distortion_model: "plumb_bob"
+
+# Camera intrinsic parameters
+# ESTIMATED values for 120° FOV USB camera - REQUIRES CALIBRATION
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [400.0,   0.0, 320.0,    # fx,  0, cx
+         0.0, 400.0, 240.0,    #  0, fy, cy
+         0.0,   0.0,   1.0]    #  0,  0,  1
+
+# Distortion coefficients (k1, k2, p1, p2, k3)
+# Wide FOV cameras typically have significant radial distortion
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [-0.2, 0.05, 0.0, 0.0, -0.01]
+
+# Rectification matrix (for stereo, identity for monocular)
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0]
+
+# Projection matrix (for generating rectified images)
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [400.0,   0.0, 320.0, 0.0,
+         0.0, 400.0, 240.0, 0.0,
+         0.0,   0.0,   1.0, 0.0]
+
+# ROS frame information
+frame_id: "camera0_link"
+
+# Calibration metadata
+calibration_status: "ESTIMATED"
+calibration_date: ""
+calibration_method: ""
+reprojection_error: 0.0
+
+# USB camera specific settings
+usb_camera:
+  device_path: "/dev/video0"
+  pixel_format: "yuyv"
+  framerate: 30
+  auto_focus: false
+  auto_exposure: true
+  auto_white_balance: true
+  brightness: 0
+  contrast: 0
+  saturation: 0
+  hue: 0
+  gamma: 100
+
+# Image processing parameters
+image_processing:
+  # Preprocessing for YOLOv8 (Phase 3)
+  target_resolution: [416, 416]  # YOLOv8n input size
+  normalization:
+    mean: [0.485, 0.456, 0.406]  # ImageNet normalization
+    std: [0.229, 0.224, 0.225]
+    scale: 255.0
+
+  # Image enhancement
+  enable_histogram_equalization: false
+  enable_noise_reduction: false
+  enable_sharpening: false
+
+# Region of interest (for computational efficiency)
+roi:
+  enable: false
+  x_offset: 0
+  y_offset: 120  # Focus on road area, skip sky
+  width: 640
+  height: 240
+
+# Temporal parameters
+temporal:
+  buffer_size: 5
+  max_age: 0.1  # 100ms max age for images
+
+# Coordinate system mounting information
+mounting:
+  # Position relative to base_link (x: forward, y: left, z: up)
+  position: [0.0, 0.0, 0.0]      # meters
+  orientation: [0.0, 0.0, 0.0]   # roll, pitch, yaw in radians
+
+  # Mounting notes
+  description: "Front-facing camera, center mounted"
+  installation_notes: "Adjust position and orientation based on actual mounting"
+
+# Performance parameters
+performance:
+  max_processing_latency: 33  # milliseconds (30 FPS)
+  enable_threading: true
+  thread_priority: "normal"
+
+# Quality assessment
+quality:
+  min_brightness: 50    # Minimum acceptable brightness
+  max_brightness: 200   # Maximum acceptable brightness
+  min_contrast: 20      # Minimum acceptable contrast
+  enable_quality_check: true
+
+# Debug and development
+debug:
+  publish_raw_image: true
+  publish_rectified_image: false
+  publish_debug_info: false
+  save_calibration_images: false
+
+# Compatibility notes
+notes:
+  - "ESTIMATED parameters - run calibration before production use"
+  - "120° FOV requires careful distortion correction"
+  - "Optimized for 640x480 → 416x416 YOLOv8 preprocessing"
+  - "USB camera buffer mismatch fixed with YUYV format"

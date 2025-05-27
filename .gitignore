@@ -15,12 +15,7 @@ install/
 # CMake generated files
 CMakeLists.txt.user
 CMakeCache.txt
-CMakeFiles/
-CMakeScripts/
-Testing/
 cmake_install.cmake
-install_manifest.txt
-compile_commands.json
 CTestTestfile.cmake
 
 # Model files (potentially large)
@@ -78,7 +73,6 @@ logs/
 # Data files
 *.bag
 *.csv
-*.yaml
 
 # Calibration data
 calibration/data/

@@ -1,0 +1,191 @@
+# VLP-16 LiDAR 0 Configuration
+# Phase 2: Sensor Drivers & Data Acquisition
+# Primary VLP-16 LiDAR publishing to /velodyne_points
+# Hardware verified: ~18K points per scan at 10Hz
+
+# Basic LiDAR information
+lidar_info:
+  model: "VLP-16"
+  manufacturer: "Velodyne"
+  frame_id: "lidar0_link"           # Frame from rostopic analysis
+  topic_name: "/lidar0/velodyne_points" # Topic from rostopic analysis
+  device_ip: "192.168.2.201"    # Default VLP-16 IP (adjust if needed)
+  data_port: 2368
+  position_port: 8308
+
+# Hardware specifications
+specifications:
+  channels: 16
+  max_range: 100.0              # meters
+  min_range: 0.5                # meters
+  rotation_frequency: 10.0      # Hz (confirmed by rostopic hz)
+  points_per_scan: 18240        # Confirmed by rostopic echo
+  vertical_fov: 30.0            # degrees (+15° to -15°)
+  horizontal_fov: 360.0         # degrees
+  vertical_resolution: 2.0     # degrees between channels
+  angular_resolution: 0.1      # degrees (3600 points per revolution)
+  range_accuracy: 0.03         # meters (±3cm)
+
+# Point cloud processing parameters
+processing:
+  # Height filtering (ground plane extraction)
+  height_filtering:
+    enable: true
+    min_height: -2.0            # meters (below vehicle)
+    max_height: 1.0             # meters (above vehicle)
+    ground_height_threshold: 0.1 # meters
+
+  # Ground plane extraction
+  ground_extraction:
+    method: "ransac"            # ransac, morphological, or region_growing
+    max_iterations: 100
+    distance_threshold: 0.1     # meters
+    probability: 0.99
+    min_inliers: 1000
+
+  # Noise filtering
+  noise_filtering:
+    enable: true
+    method: "statistical"       # statistical, radius, or bilateral
+    radius: 0.5                 # meters
+    min_neighbors: 5
+    std_multiplier: 1.0
+
+  # Intensity filtering
+  intensity_filtering:
+    enable: false
+    min_intensity: 0.0
+    max_intensity: 255.0
+
+  # Range filtering
+  range_filtering:
+    enable: true
+    min_range: 1.0              # meters (exclude very close points)
+    max_range: 80.0             # meters (effective range for lane detection)
+
+# Coordinate system and mounting
+mounting:
+  # Position relative to base_link (x: forward, y: left, z: up)
+  position: [0.0, 0.0, 0.0]     # meters - ADJUST BASED ON ACTUAL MOUNTING
+  orientation: [0.0, 0.0, 0.0]  # roll, pitch, yaw in radians
+  
+  # Mounting information
+  height_above_ground: 1.8      # meters (typical vehicle mounting)
+  mounting_angle: 0.0           # degrees (0 = level)
+  description: "Primary VLP-16 LiDAR"
+
+# Calibration parameters
+calibration:
+  # Intrinsic calibration (factory calibrated for VLP-16)
+  enable_corrections: true
+  correction_file: ""           # Path to correction file if available
+  
+  # Timing calibration
+  time_offset: 0.0              # seconds (adjust for synchronization)
+  enable_time_interpolation: true
+  
+  # Intensity calibration
+  intensity_calibration: false
+
+# Performance optimization
+performance:
+  # Processing optimization
+  enable_multithreading: true
+  num_threads: 2
+  processing_queue_size: 10
+  
+  # Memory optimization
+  enable_memory_pool: true
+  point_cloud_buffer_size: 5
+  
+  # GPU acceleration (Phase 4+)
+  enable_gpu_processing: false
+  cuda_device_id: 0
+
+# Data validation and quality
+quality:
+  # Point cloud validation
+  min_points_per_scan: 15000    # Minimum expected points
+  max_points_per_scan: 20000    # Maximum expected points
+  
+  # Timing validation
+  max_scan_time: 0.12           # seconds (slightly over 10Hz period)
+  enable_timing_check: true
+  
+  # Range validation
+  enable_range_validation: true
+  max_range_variance: 0.1       # meters
+
+# Coordinate transformations (for Phase 6+ fusion)
+transforms:
+  # Static transform to camera coordinate systems
+  publish_static_transforms: true
+  
+  # Transform publication rate
+  transform_rate: 50.0          # Hz
+  
+  # Transform timeout
+  transform_timeout: 1.0        # seconds
+
+# Visualization and debugging
+visualization:
+  # Point cloud visualization
+  publish_visualization: true
+  visualization_color_mode: "intensity"  # intensity, height, range, or ring
+  point_size: 2
+  
+  # Debug information
+  publish_diagnostics: true
+  publish_timing_info: false
+
+# ROS-specific settings
+ros:
+  # Topic configuration
+  output_topic: "/lidar0/velodyne_points"
+  frame_id: "lidar0_link"
+  queue_size: 10
+  
+  # Message format
+  point_type: "XYZI"            # X, Y, Z, Intensity
+  use_sensor_time: true
+  
+  # Publishing options
+  publish_organized: false      # Organized vs unorganized point cloud
+  publish_full_cloud: true
+
+# Network configuration (if using network interface)
+network:
+  device_ip: "192.168.2.201"
+  host_ip: "192.168.2.115"     # Host IP for receiving data
+  multicast: false
+
+# Physical specifications for reference
+physical:
+  weight: 0.83                  # kg
+  power_consumption: 8.0        # watts
+  operating_temp_range: [-10, 60]  # celsius
+  storage_temp_range: [-40, 85]    # celsius
+  ingress_protection: "IP67"
+
+# Maintenance and diagnostics
+maintenance:
+  # Health monitoring
+  enable_health_monitoring: true
+  health_check_interval: 60     # seconds
+  
+  # Error logging
+  log_scan_gaps: true
+  log_timing_issues: true
+  log_point_count_anomalies: true
+  
+  # Performance monitoring
+  monitor_cpu_usage: true
+  monitor_memory_usage: true
+
+# Notes and documentation
+notes:
+  - "Hardware verified: 18,240 points/scan at 9.91Hz"
+  - "Topic confirmed: /velodyne_points"
+  - "Frame ID confirmed: velodyne"
+  - "Adjust mounting position/orientation based on actual installation"
+  - "Coordinate with VLP-16 #1 for multi-LiDAR fusion"
