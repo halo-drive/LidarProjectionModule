@@ -27,10 +27,10 @@ PointCloudXYZIR::Ptr PointCloudProcessor::mergePointClouds(
     auto start_time = std::chrono::high_resolution_clock::now();
     
     // Reset statistics
-    last_stats_ = ProcessingStats{};
+    last_stats_ = ProcessingStats();
     last_stats_.input_points = cloud1->size() + cloud2->size();
     
-    auto merged_cloud = std::make_shared<PointCloudXYZIR>();
+    auto merged_cloud = boost::make_shared<PointCloudXYZIR>();
     
     // Reserve memory for efficiency
     merged_cloud->reserve(cloud1->size() + cloud2->size());
@@ -53,19 +53,18 @@ PointCloudXYZIR::Ptr PointCloudProcessor::mergePointClouds(
     last_stats_.merge_time_ms = std::chrono::duration<double, std::milli>(end_time - start_time).count();
     last_stats_.output_points = merged_cloud->size();
     
-    RCLCPP_INFO(rclcpp::get_logger("PointCloudProcessor"),
-        "Merged %zu + %zu points into %zu points in %.2f ms",
+    ROS_INFO("Merged %zu + %zu points into %zu points in %.2f ms",
         cloud1->size(), cloud2->size(), merged_cloud->size(), last_stats_.merge_time_ms);
     
     return merged_cloud;
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::convertFromROS(
-    const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg,
-    uint8_t sensor_id) {
+    const sensor_msgs::PointCloud2::ConstPtr& msg,
+    std::uint8_t sensor_id) {
     
     // Convert ROS message to PCL
-    auto pcl_cloud = std::make_shared<PointCloudXYZI>();
+    auto pcl_cloud = boost::make_shared<PointCloudXYZI>();
     pcl::fromROSMsg(*msg, *pcl_cloud);
     
     // Transform to identity (no transformation for single sensor conversion)
@@ -75,8 +74,7 @@ PointCloudXYZIR::Ptr PointCloudProcessor::convertFromROS(
 PointCloudXYZIR::Ptr PointCloudProcessor::applyFilters(const PointCloudXYZIR::ConstPtr& input) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
-    RCLCPP_DEBUG(rclcpp::get_logger("PointCloudProcessor"),
-        "Applying filters to %zu points", input->size());
+    ROS_DEBUG("Applying filters to %zu points", input->size());
     
     // Apply filters in sequence
     auto filtered = rangeFilter(input);
@@ -88,15 +86,14 @@ PointCloudXYZIR::Ptr PointCloudProcessor::applyFilters(const PointCloudXYZIR::Co
     auto end_time = std::chrono::high_resolution_clock::now();
     last_stats_.filter_time_ms = std::chrono::duration<double, std::milli>(end_time - start_time).count();
     
-    RCLCPP_INFO(rclcpp::get_logger("PointCloudProcessor"),
-        "Filtered %zu -> %zu points in %.2f ms",
+    ROS_INFO("Filtered %zu -> %zu points in %.2f ms",
         input->size(), filtered->size(), last_stats_.filter_time_ms);
     
     return filtered;
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::rangeFilter(const PointCloudXYZIR::ConstPtr& input) {
-    auto filtered = std::make_shared<PointCloudXYZIR>();
+    auto filtered = boost::make_shared<PointCloudXYZIR>();
     filtered->reserve(input->size());
     
     for (const auto& point : input->points) {
@@ -119,7 +116,7 @@ PointCloudXYZIR::Ptr PointCloudProcessor::rangeFilter(const PointCloudXYZIR::Con
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::voxelGridFilter(const PointCloudXYZIR::ConstPtr& input) {
-    auto filtered = std::make_shared<PointCloudXYZIR>();
+    auto filtered = boost::make_shared<PointCloudXYZIR>();
     
     voxel_filter_.setInputCloud(input);
     voxel_filter_.filter(*filtered);
@@ -128,7 +125,7 @@ PointCloudXYZIR::Ptr PointCloudProcessor::voxelGridFilter(const PointCloudXYZIR:
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::statisticalOutlierFilter(const PointCloudXYZIR::ConstPtr& input) {
-    auto filtered = std::make_shared<PointCloudXYZIR>();
+    auto filtered = boost::make_shared<PointCloudXYZIR>();
     
     statistical_filter_.setInputCloud(input);
     statistical_filter_.filter(*filtered);
@@ -137,7 +134,7 @@ PointCloudXYZIR::Ptr PointCloudProcessor::statisticalOutlierFilter(const PointCl
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::radiusOutlierFilter(const PointCloudXYZIR::ConstPtr& input) {
-    auto filtered = std::make_shared<PointCloudXYZIR>();
+    auto filtered = boost::make_shared<PointCloudXYZIR>();
     
     radius_filter_.setInputCloud(input);
     radius_filter_.filter(*filtered);
@@ -146,7 +143,7 @@ PointCloudXYZIR::Ptr PointCloudProcessor::radiusOutlierFilter(const PointCloudXY
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::organizeByRings(const PointCloudXYZIR::ConstPtr& input) {
-    auto organized = std::make_shared<PointCloudXYZIR>(*input);
+    auto organized = boost::make_shared<PointCloudXYZIR>(*input);
     
     // Sort points by ring and azimuth for better organization
     std::sort(organized->begin(), organized->end(), 
@@ -189,15 +186,15 @@ void PointCloudProcessor::calculatePointMetrics(PointXYZIR& point) {
         }
     }
     
-    point.ring = static_cast<uint16_t>(closest_ring);
+    point.ring = static_cast<std::uint16_t>(closest_ring);
 }
 
 PointCloudXYZIR::Ptr PointCloudProcessor::transformPointCloud(
     const PointCloudXYZI::ConstPtr& input,
     const Eigen::Matrix4f& transform,
-    uint8_t sensor_id) {
+    std::uint8_t sensor_id) {
     
-    auto output = std::make_shared<PointCloudXYZIR>();
+    auto output = boost::make_shared<PointCloudXYZIR>();
     output->reserve(input->size());
     
     for (const auto& point_in : input->points) {

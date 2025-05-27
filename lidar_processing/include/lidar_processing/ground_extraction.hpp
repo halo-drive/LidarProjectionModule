@@ -17,39 +17,60 @@ class GroundExtractor {
 public:
     struct GroundExtractionParams {
         // RANSAC parameters for plane fitting
-        double distance_threshold = 0.05;      // meters - max distance to plane
-        int max_iterations = 1000;             // RANSAC iterations
-        double probability = 0.99;             // desired probability of success
+        double distance_threshold;      // meters - max distance to plane
+        int max_iterations;             // RANSAC iterations
+        double probability;             // desired probability of success
         
         // Ring-based extraction parameters
-        int start_ring = 0;                    // lowest ring to consider
-        int end_ring = 15;                     // highest ring to consider
-        double ring_height_threshold = 0.2;    // height variation threshold per ring
+        int start_ring;                    // lowest ring to consider
+        int end_ring;                     // highest ring to consider
+        double ring_height_threshold;    // height variation threshold per ring
         
         // Normal estimation parameters
-        double normal_radius = 0.5;            // radius for normal estimation
-        int normal_k = 10;                     // k-nearest neighbors for normals
+        double normal_radius;            // radius for normal estimation
+        int normal_k;                     // k-nearest neighbors for normals
         
         // Ground validation parameters
-        double max_slope = 0.3;                // maximum allowed ground slope (rad)
-        double min_ground_height = -2.5;       // minimum ground height (m)
-        double max_ground_height = 0.5;        // maximum ground height (m)
+        double max_slope;                // maximum allowed ground slope (rad)
+        double min_ground_height;       // minimum ground height (m)
+        double max_ground_height;        // maximum ground height (m)
         
         // Segmentation parameters
-        double segment_distance = 2.0;         // distance between segments (m)
-        int min_segment_points = 100;          // minimum points per segment
+        double segment_distance;         // distance between segments (m)
+        int min_segment_points;          // minimum points per segment
         
         // Post-processing parameters
-        bool use_morphological_filter = true;
-        int morphological_iterations = 2;
-        double connectivity_radius = 0.3;      // radius for connectivity check
+        bool use_morphological_filter;
+        int morphological_iterations;
+        double connectivity_radius;      // radius for connectivity check
         
         // Performance parameters
-        bool use_cuda = true;                  // enable CUDA acceleration
-        int num_threads = 4;                   // CPU threads for processing
+        bool use_cuda;                  // enable CUDA acceleration
+        int num_threads;                   // CPU threads for processing
+        
+        // Default constructor with default values
+        GroundExtractionParams() :
+            distance_threshold(0.05),
+            max_iterations(1000),
+            probability(0.99),
+            start_ring(0),
+            end_ring(15),
+            ring_height_threshold(0.2),
+            normal_radius(0.5),
+            normal_k(10),
+            max_slope(0.3),
+            min_ground_height(-2.5),
+            max_ground_height(0.5),
+            segment_distance(2.0),
+            min_segment_points(100),
+            use_morphological_filter(true),
+            morphological_iterations(2),
+            connectivity_radius(0.3),
+            use_cuda(true),
+            num_threads(4) {}
     };
 
-    explicit GroundExtractor(const GroundExtractionParams& params = GroundExtractionParams{});
+    explicit GroundExtractor(const GroundExtractionParams& params = GroundExtractionParams());
     
     /**
      * @brief Extract ground plane from merged point cloud
@@ -104,7 +125,7 @@ public:
      * @param input Input point cloud
      * @return Point cloud with normal information
      */
-    pcl::PointCloud<pcl::PointNormal>::Ptr estimateNormals(
+    pcl::PointCloud<pcl::Normal>::Ptr estimateNormals(
         const PointCloudXYZIR::ConstPtr& input
     );
     
@@ -149,13 +170,18 @@ public:
     
     // Performance monitoring
     struct ExtractionStats {
-        size_t input_points = 0;
-        size_t ground_points = 0;
-        size_t non_ground_points = 0;
-        double extraction_time_ms = 0.0;
-        double normal_estimation_time_ms = 0.0;
-        double validation_confidence = 0.0;
-        Eigen::Vector4f ground_plane_coeffs = Eigen::Vector4f::Zero();
+        size_t input_points;
+        size_t ground_points;
+        size_t non_ground_points;
+        double extraction_time_ms;
+        double normal_estimation_time_ms;
+        double validation_confidence;
+        Eigen::Vector4f ground_plane_coeffs;
+        
+        ExtractionStats() : 
+            input_points(0), ground_points(0), non_ground_points(0),
+            extraction_time_ms(0.0), normal_estimation_time_ms(0.0),
+            validation_confidence(0.0), ground_plane_coeffs(Eigen::Vector4f::Zero()) {}
     };
     
     const ExtractionStats& getLastStats() const { return last_stats_; }

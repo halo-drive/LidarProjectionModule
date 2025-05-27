@@ -25,8 +25,8 @@ public:
         initializeParameters();
         
         // Initialize processing components
-        processor_ = std::make_unique<PointCloudProcessor>(filter_params_);
-        extractor_ = std::make_unique<GroundExtractor>(extraction_params_);
+        processor_.reset(new PointCloudProcessor(filter_params_));
+        extractor_.reset(new GroundExtractor(extraction_params_));
         
         // Setup subscribers for both LiDAR sensors
         setupSubscribers();
@@ -47,21 +47,21 @@ private:
     tf2_ros::TransformListener tf_listener_;
     
     // Processing components
-    std::unique_ptr<PointCloudProcessor> processor_;
-    std::unique_ptr<GroundExtractor> extractor_;
+    boost::shared_ptr<PointCloudProcessor> processor_;
+    boost::shared_ptr<GroundExtractor> extractor_;
     
     // Parameters
     PointCloudProcessor::FilterParams filter_params_;
     GroundExtractor::GroundExtractionParams extraction_params_;
     
     // Synchronized subscribers for two LiDAR sensors
-    std::unique_ptr<message_filters::Subscriber<sensor_msgs::PointCloud2>> vlp16_puck_sub_;
-    std::unique_ptr<message_filters::Subscriber<sensor_msgs::PointCloud2>> vlp16_highres_sub_;
+    boost::shared_ptr<message_filters::Subscriber<sensor_msgs::PointCloud2>> vlp16_puck_sub_;
+    boost::shared_ptr<message_filters::Subscriber<sensor_msgs::PointCloud2>> vlp16_highres_sub_;
     
     typedef message_filters::sync_policies::ApproximateTime<
         sensor_msgs::PointCloud2, 
         sensor_msgs::PointCloud2> SyncPolicy;
-    std::unique_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
+    boost::shared_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
     
     // Publishers
     ros::Publisher merged_cloud_pub_;
@@ -86,21 +86,26 @@ private:
     
     // Statistics
     struct ProcessingStats {
-        size_t total_processed = 0;
-        size_t successful_extractions = 0;
-        double avg_processing_time = 0.0;
-        double avg_ground_confidence = 0.0;
+        size_t total_processed;
+        size_t successful_extractions;
+        double avg_processing_time;
+        double avg_ground_confidence;
         ros::Time last_processing_time;
+        
+        ProcessingStats() : 
+            total_processed(0), successful_extractions(0), avg_processing_time(0.0),
+            avg_ground_confidence(0.0) {}
     } stats_;
     
     void initializeParameters() {
         // Get parameters with defaults
+        // Get parameters with defaults that match colleague's relay topics
         nh_.param<std::string>("base_frame", base_frame_, "base_link");
-        nh_.param<std::string>("vlp16_puck_frame", vlp16_puck_frame_, "velodyne_puck");
-        nh_.param<std::string>("vlp16_highres_frame", vlp16_highres_frame_, "velodyne_highres");
-        nh_.param<std::string>("vlp16_puck_topic", vlp16_puck_topic_, "/velodyne_puck/velodyne_points");
-        nh_.param<std::string>("vlp16_highres_topic", vlp16_highres_topic_, "/velodyne_highres/velodyne_points");
-        
+        nh_.param<std::string>("vlp16_puck_frame", vlp16_puck_frame_, "velodyne");        // colleague's frame
+        nh_.param<std::string>("vlp16_highres_frame", vlp16_highres_frame_, "velodyne2"); // colleague's frame
+        nh_.param<std::string>("vlp16_puck_topic", vlp16_puck_topic_, "/lidar0/points");     // colleague's relay topic
+        nh_.param<std::string>("vlp16_highres_topic", vlp16_highres_topic_, "/lidar1/points"); // colleague's relay topic
+      
         nh_.param<bool>("publish_merged_cloud", publish_merged_cloud_, true);
         nh_.param<bool>("publish_ground_visualization", publish_ground_visualization_, true);
         nh_.param<double>("processing_frequency", processing_frequency_, 10.0);
@@ -129,14 +134,14 @@ private:
     
     void setupSubscribers() {
         // Create synchronized subscribers for both LiDAR sensors
-        vlp16_puck_sub_ = std::make_unique<message_filters::Subscriber<sensor_msgs::PointCloud2>>(
-            nh_, vlp16_puck_topic_, 10);
-        vlp16_highres_sub_ = std::make_unique<message_filters::Subscriber<sensor_msgs::PointCloud2>>(
-            nh_, vlp16_highres_topic_, 10);
+        vlp16_puck_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+            nh_, vlp16_puck_topic_, 10));
+        vlp16_highres_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+            nh_, vlp16_highres_topic_, 10));
         
         // Create synchronizer
-        sync_ = std::make_unique<message_filters::Synchronizer<SyncPolicy>>(
-            SyncPolicy(10), *vlp16_puck_sub_, *vlp16_highres_sub_);
+        sync_.reset(new message_filters::Synchronizer<SyncPolicy>(
+            SyncPolicy(10), *vlp16_puck_sub_, *vlp16_highres_sub_));
         
         sync_->registerCallback(
             boost::bind(&LidarGroundExtractionNode::syncedCallback, this, _1, _2));
@@ -236,7 +241,7 @@ private:
     }
     
     PointCloudXYZI::Ptr convertToXYZI(const PointCloudXYZIR::ConstPtr& input) {
-        auto output = std::make_shared<PointCloudXYZI>();
+        auto output = boost::make_shared<PointCloudXYZI>();
         output->reserve(input->size());
         
         for (const auto& point : input->points) {

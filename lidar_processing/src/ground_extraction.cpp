@@ -23,7 +23,7 @@ GroundExtractor::GroundExtractor(const GroundExtractionParams& params)
     
     // Configure normal estimation
     normal_estimator_.setRadiusSearch(params_.normal_radius);
-    kdtree_ = std::make_shared<pcl::search::KdTree<PointXYZIR>>();
+    kdtree_.reset(new pcl::search::KdTree<PointXYZIR>());
     normal_estimator_.setSearchMethod(kdtree_);
 }
 
@@ -35,18 +35,17 @@ Eigen::Vector4f GroundExtractor::extractGroundPlane(
     auto start_time = std::chrono::high_resolution_clock::now();
     
     // Reset statistics
-    last_stats_ = ExtractionStats{};
+    last_stats_ = ExtractionStats();
     last_stats_.input_points = input->size();
     
-    RCLCPP_INFO(rclcpp::get_logger("GroundExtractor"),
-        "Extracting ground from %zu points", input->size());
+    ROS_INFO("Extracting ground from %zu points", input->size());
     
     // Initialize output clouds
-    ground_cloud = std::make_shared<PointCloudGround>();
-    non_ground_cloud = std::make_shared<PointCloudXYZIR>();
+    ground_cloud.reset(new PointCloudGround());
+    non_ground_cloud.reset(new PointCloudXYZIR());
     
     if (input->empty()) {
-        RCLCPP_WARN(rclcpp::get_logger("GroundExtractor"), "Input cloud is empty");
+        ROS_WARN("Input cloud is empty");
         return Eigen::Vector4f::Zero();
     }
     
@@ -90,7 +89,7 @@ Eigen::Vector4f GroundExtractor::extractGroundPlane(
         *ground_cloud = *ransac_ground;
         *non_ground_cloud = *ransac_non_ground;
     } else {
-        RCLCPP_ERROR(rclcpp::get_logger("GroundExtractor"), "Ground extraction failed");
+        ROS_ERROR("Ground extraction failed");
         return Eigen::Vector4f::Zero();
     }
     
@@ -110,8 +109,7 @@ Eigen::Vector4f GroundExtractor::extractGroundPlane(
     auto end_time = std::chrono::high_resolution_clock::now();
     last_stats_.extraction_time_ms = std::chrono::duration<double, std::milli>(end_time - start_time).count();
     
-    RCLCPP_INFO(rclcpp::get_logger("GroundExtractor"),
-        "Ground extraction completed: %zu ground, %zu non-ground points (%.1f%% ground) in %.2f ms",
+    ROS_INFO("Ground extraction completed: %zu ground, %zu non-ground points (%.1f%% ground) in %.2f ms",
         ground_cloud->size(), non_ground_cloud->size(),
         100.0 * ground_cloud->size() / input->size(),
         last_stats_.extraction_time_ms);
@@ -124,13 +122,13 @@ bool GroundExtractor::extractGroundByRings(
     PointCloudGround::Ptr& ground_cloud,
     PointCloudXYZIR::Ptr& non_ground_cloud) {
     
-    ground_cloud = std::make_shared<PointCloudGround>();
-    non_ground_cloud = std::make_shared<PointCloudXYZIR>();
+    ground_cloud.reset(new PointCloudGround());
+    non_ground_cloud.reset(new PointCloudXYZIR());
     
     // Organize points by rings
     std::vector<PointCloudXYZIR::Ptr> rings(VLP16_RINGS);
     for (int i = 0; i < VLP16_RINGS; ++i) {
-        rings[i] = std::make_shared<PointCloudXYZIR>();
+        rings[i].reset(new PointCloudXYZIR());
     }
     
     // Distribute points into rings
@@ -187,8 +185,8 @@ Eigen::Vector4f GroundExtractor::extractGroundRANSAC(
     PointCloudGround::Ptr& ground_cloud,
     PointCloudXYZIR::Ptr& non_ground_cloud) {
     
-    ground_cloud = std::make_shared<PointCloudGround>();
-    non_ground_cloud = std::make_shared<PointCloudXYZIR>();
+    ground_cloud.reset(new PointCloudGround());
+    non_ground_cloud.reset(new PointCloudXYZIR());
     
     // RANSAC plane segmentation
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
@@ -198,7 +196,7 @@ Eigen::Vector4f GroundExtractor::extractGroundRANSAC(
     ransac_seg_.segment(*inliers, *coefficients);
     
     if (inliers->indices.empty()) {
-        RCLCPP_ERROR(rclcpp::get_logger("GroundExtractor"), "RANSAC failed to find ground plane");
+        ROS_ERROR("RANSAC failed to find ground plane");
         return Eigen::Vector4f::Zero();
     }
     
@@ -254,7 +252,7 @@ std::vector<PointCloudXYZIR::Ptr> GroundExtractor::segmentRadially(
     std::vector<PointCloudXYZIR::Ptr> segments(num_segments);
     
     for (int i = 0; i < num_segments; ++i) {
-        segments[i] = std::make_shared<PointCloudXYZIR>();
+        segments[i].reset(new PointCloudXYZIR());
     }
     
     for (const auto& point : input->points) {
@@ -278,25 +276,21 @@ std::vector<PointCloudXYZIR::Ptr> GroundExtractor::segmentRadially(
     return segments;
 }
 
-pcl::PointCloud<pcl::PointNormal>::Ptr GroundExtractor::estimateNormals(
+pcl::PointCloud<pcl::Normal>::Ptr GroundExtractor::estimateNormals(
     const PointCloudXYZIR::ConstPtr& input) {
     
     auto start_time = std::chrono::high_resolution_clock::now();
     
-    auto normals = std::make_shared<pcl::PointCloud<pcl::Normal>>();
+    auto normals = boost::make_shared<pcl::PointCloud<pcl::Normal>>();
     
     normal_estimator_.setInputCloud(input);
     normal_estimator_.compute(*normals);
-    
-    // Convert to PointNormal cloud
-    auto point_normals = std::make_shared<pcl::PointCloud<pcl::PointNormal>>();
-    pcl::concatenateFields(*input, *normals, *point_normals);
     
     auto end_time = std::chrono::high_resolution_clock::now();
     last_stats_.normal_estimation_time_ms = 
         std::chrono::duration<double, std::milli>(end_time - start_time).count();
     
-    return point_normals;
+    return normals;
 }
 
 double GroundExtractor::validateGroundPlane(
@@ -336,11 +330,11 @@ pcl::PointIndices::Ptr GroundExtractor::morphologicalFilter(
     const PointCloudXYZIR::ConstPtr& input_cloud) {
     
     if (!params_.use_morphological_filter) {
-        return std::make_shared<pcl::PointIndices>(*ground_indices);
+        return boost::make_shared<pcl::PointIndices>(*ground_indices);
     }
     
     // Simple morphological operations on point indices
-    auto filtered_indices = std::make_shared<pcl::PointIndices>();
+    auto filtered_indices = boost::make_shared<pcl::PointIndices>();
     
     // For each ground point, check connectivity with neighbors
     for (int idx : ground_indices->indices) {
@@ -373,11 +367,11 @@ pcl::PointIndices::Ptr GroundExtractor::morphologicalFilter(
 }
 
 PointCloudGround::Ptr GroundExtractor::convertToGroundPoints(
-    const PointCloudXYZIR::ConstPtr& input,
+    const PointCloudXYZI::ConstPtr& input,
     const std::vector<float>& ground_confidence,
     const pcl::PointCloud<pcl::Normal>::ConstPtr& normals) {
     
-    auto ground_cloud = std::make_shared<PointCloudGround>();
+    auto ground_cloud = boost::make_shared<PointCloudGround>();
     
     size_t valid_count = std::min({input->size(), ground_confidence.size(), 
                                   normals ? normals->size() : input->size()});
@@ -449,9 +443,9 @@ float GroundExtractor::classifyPoint(const PointXYZIR& point) const {
 
 pcl::PointIndices::Ptr GroundExtractor::processRing(
     const PointCloudXYZIR::ConstPtr& ring_points,
-    int ring_id) {
+    int /*ring_id*/) {
     
-    auto ground_indices = std::make_shared<pcl::PointIndices>();
+    auto ground_indices = boost::make_shared<pcl::PointIndices>();
     
     if (ring_points->empty()) return ground_indices;
     
@@ -513,9 +507,9 @@ float GroundExtractor::calculateGroundConfidence(
 pcl::PointIndices::Ptr GroundExtractor::mergeGroundIndices(
     const pcl::PointIndices::ConstPtr& ransac_indices,
     const pcl::PointIndices::ConstPtr& ring_indices,
-    const PointCloudXYZIR::ConstPtr& input_cloud) {
+    const PointCloudXYZIR::ConstPtr& /*input_cloud*/) {
     
-    auto merged_indices = std::make_shared<pcl::PointIndices>();
+    auto merged_indices = boost::make_shared<pcl::PointIndices>();
     
     // Start with RANSAC indices
     merged_indices->indices = ransac_indices->indices;
