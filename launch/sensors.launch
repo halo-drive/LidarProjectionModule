@@ -1,7 +1,4 @@
-<!-- Clean Sensor Launch File - Direct Namespace Configuration -->
-<!-- No topic relays needed - configure drivers directly -->
-<!-- Phase 2: Optimized sensor data acquisition system -->
-
+<?xml version="1.0"?>
 <launch>
   <!-- Launch Arguments -->
   <arg name="enable_camera0" default="false" />
@@ -11,6 +8,9 @@
   <arg name="enable_ground_extraction" default="true" />
   <arg name="debug_mode" default="true" />
 
+  <!-- Get the package path -->
+  <arg name="pkg_path" default="$(find lane_fusion)"/>
+
   <!-- System Configuration Parameters -->
   <rosparam file="$(find lane_fusion)/config/system_config.yaml" command="load" />
 
@@ -18,18 +18,30 @@
   <!-- Camera 0: Direct to /camera0/ namespace -->
   <group ns="camera0" if="$(arg enable_camera0)">
     <node name="usb_cam_node" pkg="usb_cam" type="usb_cam_node" output="screen" respawn="false">
+      <!-- Camera device settings -->
       <param name="video_device" value="/dev/video0" />
-      <param name="image_width" value="640" />
-      <param name="image_height" value="480" />
-      <param name="pixel_format" value="yuyv" />
-      <param name="io_method" value="mmap" />
-      <param name="framerate" value="30" />
       <param name="camera_frame_id" value="camera0_link" />
       <param name="camera_name" value="camera0" />
+
+      <!-- Image settings -->
+      <param name="image_width" value="640" />
+      <param name="image_height" value="480" />
+      <param name="framerate" value="30" />
+      <param name="pixel_format" value="yuyv" />
+      <param name="io_method" value="mmap" />
+
+      <!-- Camera controls -->
       <param name="auto_focus" value="false" />
       <param name="auto_exposure" value="true" />
       <param name="auto_white_balance" value="true" />
       <param name="camera_timeout" value="1000" />
+
+      <!-- Calibration file path -->
+      <param name="camera_info_url" value="file://$(arg pkg_path)/config/camera_params/camera0.yaml"/>
+
+      <!-- Topic remapping to clean namespace -->
+      <remap from="image_raw" to="/camera0/image_raw"/>
+      <remap from="camera_info" to="/camera0/camera_info"/>
     </node>
   </group>
 
@@ -49,7 +61,8 @@
 
     <node pkg="nodelet" type="nodelet" name="pointcloud_nodelet"
           args="load velodyne_pointcloud/TransformNodelet nodelet_manager" output="screen">
-      <param name="calibration" value="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+      <param name="model" value="VLP16"/>
+      <param name="frame_id" value="lidar0_link"/>
       <param name="min_range" value="0.4"/>
       <param name="max_range" value="100.0"/>
       <param name="organize_cloud" value="false"/>
@@ -74,60 +87,59 @@
 
     <node pkg="nodelet" type="nodelet" name="pointcloud_nodelet"
           args="load velodyne_pointcloud/TransformNodelet nodelet_manager" output="screen">
-      <param name="calibration" value="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+      <param name="model" value="VLP16"/>
+      <param name="frame_id" value="lidar1_link"/>
       <param name="min_range" value="0.4"/>
       <param name="max_range" value="100.0"/>
       <param name="organize_cloud" value="false"/>
-      <param name="model" value="VLP16"/>
+
+      <!-- Topic remapping -->
+      <remap from="velodyne_points" to="/lidar1/velodyne_points"/>
     </node>
   </group>
 
-<!-- CORRECTED Ground Extraction Parameters -->
-<group if="$(arg enable_ground_extraction)">
-  <node name="lidar_ground_extraction_node" pkg="lane_fusion" type="lidar_ground_extraction_node" 
-        output="screen" respawn="true">
-    
-    <!-- Frame parameters -->
-    <param name="base_frame" value="base_link" />
-    <param name="vlp16_puck_frame" value="lidar0_link" />
-    <param name="vlp16_highres_frame" value="lidar1_link" />
-    
-    <!-- Topic parameters -->
-    <param name="vlp16_puck_topic" value="/lidar0/velodyne_points" />
-    <param name="vlp16_highres_topic" value="/lidar1/velodyne_points" />
-    
-    <!-- FIXED: Height parameters based on your log data -->
-    <param name="filter/min_height" value="-0.5" />   <!-- 50cm below sensor -->
-    <param name="filter/max_height" value="0.3" />    <!-- 30cm above sensor -->
-    
-    <!-- Other parameters -->
-    <param name="filter/voxel_size" value="0.05" />
-    <param name="filter/statistical_k" value="30" />
-    <param name="filter/statistical_std_mul" value="2.0" />
-    <param name="filter/min_range" value="0.5" />
-    <param name="filter/max_range" value="50.0" />
-    
-    <param name="extraction/distance_threshold" value="0.05" />
-    <param name="extraction/max_iterations" value="1000" />
-    <param name="extraction/probability" value="0.99" />
-    <param name="extraction/normal_z_threshold" value="0.7" />
-    
-    <param name="publish_merged_cloud" value="true" />
-    <param name="publish_ground_visualization" value="true" />
-    <param name="processing_frequency" value="10.0" />
-    
-  </node>
-</group>
-
-
+  <!-- ===== GROUND EXTRACTION SECTION ===== -->
+  <group if="$(arg enable_ground_extraction)">
+    <node name="lidar_ground_extraction_node" pkg="lane_fusion" type="lidar_ground_extraction_node" 
+          output="screen" respawn="true">
+      
+      <!-- Frame parameters -->
+      <param name="base_frame" value="base_link" />
+      <param name="vlp16_puck_frame" value="lidar0_link" />
+      <param name="vlp16_highres_frame" value="lidar1_link" />
+      
+      <!-- Topic parameters -->
+      <param name="vlp16_puck_topic" value="/lidar0/velodyne_points" />
+      <param name="vlp16_highres_topic" value="/lidar1/velodyne_points" />
+      
+      <!-- CORRECTED: Height parameters for 40cm LiDAR height -->
+      <param name="filter/voxel_size" value="0.05" />
+      <param name="filter/statistical_k" value="30" />
+      <param name="filter/statistical_std_mul" value="2.0" />
+      <param name="filter/min_range" value="0.5" />
+      <param name="filter/max_range" value="50.0" />
+      
+      <!-- CRITICAL: Height parameters based on 40cm LiDAR height -->
+      <param name="filter/min_height" value="-0.6" />   <!-- 60cm below sensor -->
+      <param name="filter/max_height" value="-0.1" />   <!-- 10cm below sensor -->
+      
+      <!-- Ground extraction parameters -->
+      <param name="extraction/distance_threshold" value="0.03" />
+      <param name="extraction/max_iterations" value="1000" />
+      <param name="extraction/probability" value="0.99" />
+      <param name="extraction/normal_z_threshold" value="0.7" />
+      
+      <!-- Publishing options -->
+      <param name="publish_merged_cloud" value="true" />
+      <param name="publish_ground_visualization" value="true" />
+      <param name="processing_frequency" value="10.0" />
+      
+    </node>
+  </group>
 
   <!-- ===== COORDINATE TRANSFORMS SECTION ===== -->
-  <!-- Static Transform Publishers - Consistent naming -->
-
-  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
-        args="0.0 0.0 0.0 0.0 0.0 0.0 base_link camera0_link"
-        if="$(arg enable_camera0)" />
-
+  <!-- CORRECTED: 40cm height, 1.5m separation -->
+  
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar0"
         args="0.0 0.75 0.4 0.0 0.0 0.0 base_link lidar0_link"
         if="$(arg enable_lidar0)" />
@@ -136,9 +148,9 @@
         args="0.0 -0.75 0.4 0.0 0.0 0.0 base_link lidar1_link"
         if="$(arg enable_lidar1)" />
 
-  <!-- Camera transforms (if needed) -->
+  <!-- Camera transforms -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
-        args="0.0 -0.1 0.0 0.0 0.0 0.0 base_link camera0_link"
+        args="0.0 -0.1 0.3 0.0 0.0 0.0 base_link camera0_link"
         if="$(arg enable_camera0)" />
 
   <!-- ===== DIAGNOSTIC SECTION ===== -->
