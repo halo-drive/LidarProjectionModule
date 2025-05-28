@@ -82,86 +82,64 @@
     </node>
   </group>
 
-  <!-- ===== GROUND EXTRACTION SECTION ===== -->
-  <group if="$(arg enable_ground_extraction)">
-    <node name="lidar_ground_extraction_node" pkg="lane_fusion" type="lidar_ground_extraction_node" output="screen" respawn="true">
-      <!-- Frame parameters -->
-      <param name="base_frame" value="base_link" />
-      <param name="vlp16_puck_frame" value="lidar0_link" />
-      <param name="vlp16_highres_frame" value="lidar1_link" />
-      
-      <!-- Topic parameters - matching your current setup -->
-      <param name="vlp16_puck_topic" value="/lidar0/velodyne_points" />
-      <param name="vlp16_highres_topic" value="/lidar1/velodyne_points" />
-      
-      <!-- Processing parameters -->
-      <param name="publish_merged_cloud" value="true" />
-      <param name="publish_ground_visualization" value="true" />
-      <param name="processing_frequency" value="10.0" />
-      
-
-      <!-- CORRECTED Filter parameters based on your physical setup -->
-    <param name="filter/voxel_size" value="0.05" />          <!-- Smaller = denser cloud -->
-    <param name="filter/statistical_k" value="30" />          <!-- Reduce noise filtering -->
-    <param name="filter/statistical_std_mul" value="2.0" />   <!-- Less aggressive filtering -->
-    <param name="filter/min_range" value="0.5" />             <!-- Closer minimum range -->
-    <param name="filter/max_range" value="50.0" />            <!-- Reasonable max range -->
+<!-- CORRECTED Ground Extraction Parameters -->
+<group if="$(arg enable_ground_extraction)">
+  <node name="lidar_ground_extraction_node" pkg="lane_fusion" type="lidar_ground_extraction_node" 
+        output="screen" respawn="true">
     
-    <!-- CRITICAL: Height parameters based on your LiDAR heights (50cm and 75cm) -->
-    <param name="filter/min_height" value="-1.3" />           <!-- 1m below lowest LiDAR -->
-    <param name="filter/max_height" value="-0.7" />            <!-- Only 20cm above ground -->
+    <!-- Frame parameters -->
+    <param name="base_frame" value="base_link" />
+    <param name="vlp16_puck_frame" value="lidar0_link" />
+    <param name="vlp16_highres_frame" value="lidar1_link" />
     
-    <!-- CORRECTED Ground extraction parameters -->
-    <param name="extraction/distance_threshold" value="0.02" />  <!-- Slightly looser for better detection -->
-    <param name="extraction/max_iterations" value="1000" />      <!-- More iterations for robustness -->
+    <!-- Topic parameters -->
+    <param name="vlp16_puck_topic" value="/lidar0/velodyne_points" />
+    <param name="vlp16_highres_topic" value="/lidar1/velodyne_points" />
+    
+    <!-- FIXED: Height parameters based on your log data -->
+    <param name="filter/min_height" value="-0.5" />   <!-- 50cm below sensor -->
+    <param name="filter/max_height" value="0.3" />    <!-- 30cm above sensor -->
+    
+    <!-- Other parameters -->
+    <param name="filter/voxel_size" value="0.05" />
+    <param name="filter/statistical_k" value="30" />
+    <param name="filter/statistical_std_mul" value="2.0" />
+    <param name="filter/min_range" value="0.5" />
+    <param name="filter/max_range" value="50.0" />
+    
+    <param name="extraction/distance_threshold" value="0.05" />
+    <param name="extraction/max_iterations" value="1000" />
     <param name="extraction/probability" value="0.99" />
-
-    <param name="extraction/normal_z_threshold" value="0.9" />   <!-- Slightly looser for real data -->
-    <param name="extraction/height_tolerance" value="0.2" />     <!-- 30cm tolerance -->
-    <param name="extraction/grid_size" value="2.0" />           <!-- Smaller grid for better resolution -->
+    <param name="extraction/normal_z_threshold" value="0.7" />
     
-    <!-- Debug parameters -->
-    <param name="debug_improved_extraction" value="true" />
-
-
-
-    </node>
-  </group>
+    <param name="publish_merged_cloud" value="true" />
+    <param name="publish_ground_visualization" value="true" />
+    <param name="processing_frequency" value="10.0" />
+    
+  </node>
+</group>
 
 
 
   <!-- ===== COORDINATE TRANSFORMS SECTION ===== -->
   <!-- Static Transform Publishers - Consistent naming -->
 
-  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
         args="0.0 0.0 0.0 0.0 0.0 0.0 base_link camera0_link"
         if="$(arg enable_camera0)" />
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar0"
-        args="0.0 0.0 1.8 0.0 0.0 0.0 base_link lidar0_link"
+        args="0.0 0.75 0.4 0.0 0.0 0.0 base_link lidar0_link"
         if="$(arg enable_lidar0)" />
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar1"
-        args="0.0 0.0 1.8 0.0 0.0 0.0 base_link lidar1_link"
-        if="$(arg enable_lidar1)" /> -->
-
-  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar0"
-        args="0.0 0.5 1.0 0.0 0.0 0.0 base_link lidar0_link"
-        if="$(arg enable_lidar0)" />
-
-<!-- VLP-16 puck at 75cm height, rear position (2.5m apart) -->  
-  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_lidar1"
-        args="0.0 -0.5 1.0 0.0 0.0 0.0 base_link lidar1_link"
+        args="0.0 -0.75 0.4 0.0 0.0 0.0 base_link lidar1_link"
         if="$(arg enable_lidar1)" />
 
-<!-- Camera transforms (if needed) -->
-<node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
-      args="0.0 -0.1 0.0 0.0 0.0 0.0 base_link camera0_link"
-      if="$(arg enable_camera0)" />
-
-<!-- CRITICAL: Ground reference frame (RViz grid plane) -->
-<!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_ground"
-      args="0.0 0.0 -0.625 0.0 0.0 0.0 base_link ground_plane" /> -->
+  <!-- Camera transforms (if needed) -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_to_camera0"
+        args="0.0 -0.1 0.0 0.0 0.0 0.0 base_link camera0_link"
+        if="$(arg enable_camera0)" />
 
   <!-- ===== DIAGNOSTIC SECTION ===== -->
   <group if="$(arg debug_mode)">
