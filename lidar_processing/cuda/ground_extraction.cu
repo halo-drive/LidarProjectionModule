@@ -24,7 +24,175 @@ struct PlaneCoefficients {
     float a, b, c, d;
 };
 
+// NEW: Grid structure for Livox-inspired ground detection
+struct GridCell {
+    float min_height;
+    float max_height; 
+    int point_count;
+    bool is_ground_candidate;
+};
+
+// NEW: Grid-based ground preprocessing kernel (Livox-inspired)
+__global__ void gridBasedGroundPreprocessing(
+    const CudaPoint* points,
+    int num_points,
+    float grid_size_x,
+    float grid_size_y, 
+    float grid_origin_x,
+    float grid_origin_y,
+    int grid_width,
+    int grid_height,
+    GridCell* grid,
+    bool* ground_mask,
+    float height_tolerance,
+    float max_ground_height,
+    float min_ground_height,
+    float normal_z_threshold
+) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (idx >= num_points) return;
+    
+    const CudaPoint& point = points[idx];
+    
+    // STRICT height filtering first
+    if (point.z > max_ground_height || point.z < min_ground_height) {
+        ground_mask[idx] = false;
+        return;
+    }
+    
+    // Calculate grid coordinates
+    int grid_x = (int)((point.x - grid_origin_x) / grid_size_x);
+    int grid_y = (int)((point.y - grid_origin_y) / grid_size_y);
+    
+    if (grid_x < 0 || grid_x >= grid_width || grid_y < 0 || grid_y >= grid_height) {
+        ground_mask[idx] = false;
+        return;
+    }
+    
+    int grid_idx = grid_y * grid_width + grid_x;
+    
+    // Update grid statistics atomically
+    atomicAdd(&grid[grid_idx].point_count, 1);
+    
+    // Update min height using atomic compare-and-swap
+    float old_min = grid[grid_idx].min_height;
+    while (old_min > point.z && atomicCAS((int*)&grid[grid_idx].min_height, 
+                                          __float_as_int(old_min), 
+                                          __float_as_int(point.z)) != __float_as_int(old_min)) {
+        old_min = grid[grid_idx].min_height;
+    }
+    
+    __syncthreads();
+    
+    // Wait for all threads to update grid statistics
+    __syncthreads();
+    
+    // Classify point based on Livox-inspired grid logic
+    GridCell& cell = grid[grid_idx];
+    
+    // Rule 1: Point must be close to minimum height in cell
+    bool close_to_min = (point.z - cell.min_height) <= height_tolerance;
+    
+    // Rule 2: Sufficient point density in cell
+    bool sufficient_density = cell.point_count >= 3;
+    
+    // Rule 3: Additional height-based validation (from Livox)
+    bool height_valid = true;
+    if (point.z > 1.0f) {  // Too high = definitely not ground
+        height_valid = false;
+    }
+    
+    // Rule 4: Distance-based height validation
+    float horizontal_dist = sqrtf(point.x * point.x + point.y * point.y);
+    if (horizontal_dist < 10.0f && point.z > 0.5f) {  // Close points shouldn't be too high
+        height_valid = false;
+    }
+    
+    ground_mask[idx] = close_to_min && sufficient_density && height_valid;
+}
+
+
+// IMPROVED: Much stricter ground point classification
+__global__ void strictGroundClassification(const CudaPoint* points, bool* ground_mask, 
+    float* confidence_scores, int num_points,
+    PlaneCoefficients plane, float distance_threshold,
+    float normal_z_threshold, float max_height, float min_height) {
+int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+if (idx >= num_points) return;
+
+const CudaPoint& point = points[idx];
+
+// CRITICAL: Check if plane normal points upward enough
+if (plane.c < normal_z_threshold) {
+ground_mask[idx] = false;
+confidence_scores[idx] = 0.0f;
+return;
+}
+
+// Calculate distance to plane
+float distance = fabsf(plane.a * point.x + plane.b * point.y + 
+plane.c * point.z + plane.d) /
+sqrtf(plane.a * plane.a + plane.b * plane.b + plane.c * plane.c);
+
+// Initial classification based on distance
+bool is_ground = distance < distance_threshold;
+
+if (is_ground) {
+// STRICT additional validation
+
+// Height validation
+if (point.z > max_height || point.z < min_height) {
+is_ground = false;
+}
+
+// Distance-based height validation (Livox approach)
+float horizontal_dist = sqrtf(point.x * point.x + point.y * point.y);
+if (horizontal_dist > 10.0f) {
+// For distant points, check if height matches expected ground height
+float expected_ground_height = -(plane.a * point.x + plane.b * point.y + plane.d) / plane.c;
+if (fabsf(point.z - expected_ground_height) > 0.5f) {
+is_ground = false;
+}
+}
+
+// Additional slope validation for very steep terrain
+if (horizontal_dist > 5.0f) {
+float slope = fabsf(point.z) / horizontal_dist;
+if (slope > 0.3f) {  // Max 30% slope
+is_ground = false;
+}
+}
+}
+
+ground_mask[idx] = is_ground;
+
+// Calculate confidence score with strict criteria
+float confidence = 0.0f;
+if (is_ground) {
+confidence = expf(-distance / distance_threshold);
+
+// Boost confidence for good normal alignment
+confidence *= plane.c;  // Z component of normal
+
+// Reduce confidence for points at extreme heights
+if (point.z > 0.2f || point.z < -2.0f) {
+confidence *= 0.5f;
+}
+
+// Reduce confidence for points that are too close to threshold
+if (distance > distance_threshold * 0.8f) {
+confidence *= 0.7f;
+}
+}
+
+confidence_scores[idx] = fminf(1.0f, fmaxf(0.0f, confidence));
+}
+
+
 // CUDA kernel for calculating point ranges and rings
+// Keep your existing calculatePointMetrics kernel
 __global__ void calculatePointMetrics(CudaPoint* points, int num_points) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -59,6 +227,91 @@ __global__ void calculatePointMetrics(CudaPoint* points, int num_points) {
     
     point.ring = static_cast<uint16_t>(closest_ring);
 }
+
+// IMPROVED: Host function with grid-based preprocessing
+extern "C" bool cudaImprovedGroundExtraction(const CudaPoint* h_points, int num_points,
+    bool* h_ground_mask, float* h_confidence_scores,
+    PlaneCoefficients* h_plane_coeffs,
+    float distance_threshold, float normal_z_threshold,
+    float grid_size, float height_tolerance,
+    float max_height, float min_height) {
+
+// Device memory allocation
+CudaPoint* d_points;
+bool* d_ground_mask;
+float* d_confidence_scores;
+GridCell* d_grid;
+
+cudaMalloc(&d_points, num_points * sizeof(CudaPoint));
+cudaMalloc(&d_ground_mask, num_points * sizeof(bool));
+cudaMalloc(&d_confidence_scores, num_points * sizeof(float));
+
+// Grid setup
+float grid_origin_x = -50.0f, grid_origin_y = -50.0f;
+int grid_width = (int)(100.0f / grid_size) + 1;
+int grid_height = (int)(100.0f / grid_size) + 1;
+
+cudaMalloc(&d_grid, grid_width * grid_height * sizeof(GridCell));
+
+// Initialize grid
+GridCell init_cell;
+init_cell.min_height = FLT_MAX;
+init_cell.max_height = -FLT_MAX;
+init_cell.point_count = 0;
+init_cell.is_ground_candidate = false;
+
+// Copy data to device
+cudaMemcpy(d_points, h_points, num_points * sizeof(CudaPoint), cudaMemcpyHostToDevice);
+
+// Initialize grid on device
+cudaMemset(d_grid, 0, grid_width * grid_height * sizeof(GridCell));
+
+// Set initial min_height values
+std::vector<GridCell> init_grid(grid_width * grid_height, init_cell);
+cudaMemcpy(d_grid, init_grid.data(), grid_width * grid_height * sizeof(GridCell), cudaMemcpyHostToDevice);
+
+// Launch grid-based preprocessing
+int threads_per_block = 256;
+int num_blocks = (num_points + threads_per_block - 1) / threads_per_block;
+
+gridBasedGroundPreprocessing<<<num_blocks, threads_per_block>>>(
+d_points, num_points, grid_size, grid_size,
+grid_origin_x, grid_origin_y, grid_width, grid_height, d_grid,
+d_ground_mask, height_tolerance, max_height, min_height, normal_z_threshold
+);
+
+cudaDeviceSynchronize();
+
+// For now, use a simple plane (will be replaced by PCA from CPU)
+// In practice, you'd do PCA on CPU and pass the result here
+PlaneCoefficients plane = *h_plane_coeffs;
+
+// Launch strict ground classification
+strictGroundClassification<<<num_blocks, threads_per_block>>>(
+d_points, d_ground_mask, d_confidence_scores, num_points,
+plane, distance_threshold, normal_z_threshold, max_height, min_height
+);
+
+// Copy results back to host
+cudaMemcpy(h_ground_mask, d_ground_mask, num_points * sizeof(bool), cudaMemcpyDeviceToHost);
+cudaMemcpy(h_confidence_scores, d_confidence_scores, num_points * sizeof(float), cudaMemcpyDeviceToHost);
+
+// Clean up device memory
+cudaFree(d_points);
+cudaFree(d_ground_mask);
+cudaFree(d_confidence_scores);
+cudaFree(d_grid);
+
+// Check for CUDA errors
+cudaError_t error = cudaGetLastError();
+if (error != cudaSuccess) {
+printf("CUDA error: %s\n", cudaGetErrorString(error));
+return false;
+}
+
+return true;
+}
+
 
 // CUDA kernel for range filtering
 __global__ void rangeFilter(const CudaPoint* input, CudaPoint* output, bool* valid_mask,

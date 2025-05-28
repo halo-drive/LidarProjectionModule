@@ -19,12 +19,12 @@ public:
         float voxel_size;            // meters
         
         // Statistical outlier removal
-        int statistical_k;             // k-nearest neighbors
-        double statistical_std_mul;   // standard deviation multiplier
+        int statistical_k;           // k-nearest neighbors
+        double statistical_std_mul;  // standard deviation multiplier
         
         // Radius outlier removal
-        double radius_search;         // search radius in meters
-        int min_neighbors;              // minimum neighbors in radius
+        double radius_search;        // search radius in meters
+        int min_neighbors;           // minimum neighbors in radius
         
         // Range filtering
         float min_range;
@@ -32,17 +32,17 @@ public:
         
         // Z-axis filtering (height)
         float min_height;           // meters below sensor
-        float max_height;            // meters above sensor
+        float max_height;           // meters above sensor
         
-        // Default constructor
+        // Default constructor with SAFE defaults
         FilterParams() :
             voxel_size(0.1f),
             statistical_k(50),
             statistical_std_mul(1.0),
             radius_search(0.5),
             min_neighbors(5),
-            min_range(VLP16_MIN_RANGE),
-            max_range(VLP16_MAX_RANGE),
+            min_range(0.9f),        // FIXED: Use actual values instead of undefined constants
+            max_range(100.0f),      // FIXED: Use actual values instead of undefined constants
             min_height(-3.0f),
             max_height(5.0f) {}
     };
@@ -51,69 +51,47 @@ public:
     
     /**
      * @brief Merge point clouds from two VLP-16 sensors
-     * @param cloud1 Point cloud from first sensor (puck)
-     * @param cloud2 Point cloud from second sensor (high-res puck)
-     * @param transform2 Transformation matrix for second sensor relative to first
-     * @return Merged point cloud with sensor IDs
+     * SIMPLIFIED: Use standard PCL types only
      */
-    PointCloudXYZIR::Ptr mergePointClouds(
+    PointCloudXYZI::Ptr mergePointClouds(
         const PointCloudXYZI::ConstPtr& cloud1,
         const PointCloudXYZI::ConstPtr& cloud2,
         const Eigen::Matrix4f& transform2
     );
     
     /**
-     * @brief Convert ROS PointCloud2 message to custom point type
-     * @param msg ROS PointCloud2 message
-     * @param sensor_id Sensor identifier
-     * @return Converted point cloud
+     * @brief Convert ROS PointCloud2 message to standard PCL type
+     * SIMPLIFIED: No custom sensor_id needed
      */
-    PointCloudXYZIR::Ptr convertFromROS(
-        const sensor_msgs::PointCloud2::ConstPtr& msg,
-        std::uint8_t sensor_id
+    PointCloudXYZI::Ptr convertFromROS(
+        const sensor_msgs::PointCloud2::ConstPtr& msg
     );
     
     /**
      * @brief Apply filtering pipeline to point cloud
-     * @param input Input point cloud
-     * @return Filtered point cloud
+     * SIMPLIFIED: Use standard PCL types
      */
-    PointCloudXYZIR::Ptr applyFilters(const PointCloudXYZIR::ConstPtr& input);
+    PointCloudXYZI::Ptr applyFilters(const PointCloudXYZI::ConstPtr& input);
     
     /**
      * @brief Remove points based on range and height constraints
-     * @param input Input point cloud
-     * @return Range-filtered point cloud
      */
-    PointCloudXYZIR::Ptr rangeFilter(const PointCloudXYZIR::ConstPtr& input);
+    PointCloudXYZI::Ptr rangeFilter(const PointCloudXYZI::ConstPtr& input);
     
     /**
      * @brief Downsample point cloud using voxel grid
-     * @param input Input point cloud
-     * @return Downsampled point cloud
      */
-    PointCloudXYZIR::Ptr voxelGridFilter(const PointCloudXYZIR::ConstPtr& input);
+    PointCloudXYZI::Ptr voxelGridFilter(const PointCloudXYZI::ConstPtr& input);
     
     /**
      * @brief Remove statistical outliers
-     * @param input Input point cloud
-     * @return Outlier-filtered point cloud
      */
-    PointCloudXYZIR::Ptr statisticalOutlierFilter(const PointCloudXYZIR::ConstPtr& input);
+    PointCloudXYZI::Ptr statisticalOutlierFilter(const PointCloudXYZI::ConstPtr& input);
     
     /**
      * @brief Remove points with few neighbors in radius
-     * @param input Input point cloud
-     * @return Radius-filtered point cloud
      */
-    PointCloudXYZIR::Ptr radiusOutlierFilter(const PointCloudXYZIR::ConstPtr& input);
-    
-    /**
-     * @brief Organize point cloud by ring structure for VLP-16
-     * @param input Input point cloud
-     * @return Ring-organized point cloud
-     */
-    PointCloudXYZIR::Ptr organizeByRings(const PointCloudXYZIR::ConstPtr& input);
+    PointCloudXYZI::Ptr radiusOutlierFilter(const PointCloudXYZI::ConstPtr& input);
     
     // Getters and setters
     void setFilterParams(const FilterParams& params) { params_ = params; }
@@ -127,6 +105,7 @@ public:
         double merge_time_ms;
         double filter_time_ms;
         
+        // FIXED: Proper constructor syntax
         ProcessingStats() : 
             input_points(0), output_points(0), processing_time_ms(0.0), 
             merge_time_ms(0.0), filter_time_ms(0.0) {}
@@ -138,27 +117,18 @@ private:
     FilterParams params_;
     ProcessingStats last_stats_;
     
-    // PCL filter objects (reused for efficiency)
-    pcl::VoxelGrid<PointXYZIR> voxel_filter_;
-    pcl::StatisticalOutlierRemoval<PointXYZIR> statistical_filter_;
-    pcl::RadiusOutlierRemoval<PointXYZIR> radius_filter_;
-    
-    /**
-     * @brief Calculate range and ring information for VLP-16 point
-     * @param point Input point to analyze
-     */
-    void calculatePointMetrics(PointXYZIR& point);
+    // PCL filter objects (reused for efficiency) - USING STANDARD PCL TYPES
+    pcl::VoxelGrid<pcl::PointXYZI> voxel_filter_;
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZI> statistical_filter_;
+    pcl::RadiusOutlierRemoval<pcl::PointXYZI> radius_filter_;
     
     /**
      * @brief Transform point cloud using transformation matrix
-     * @param input Input point cloud
-     * @param transform Transformation matrix
-     * @return Transformed point cloud
+     * SIMPLIFIED: Standard PCL types only
      */
-    PointCloudXYZIR::Ptr transformPointCloud(
+    PointCloudXYZI::Ptr transformPointCloud(
         const PointCloudXYZI::ConstPtr& input,
-        const Eigen::Matrix4f& transform,
-        std::uint8_t sensor_id
+        const Eigen::Matrix4f& transform
     );
 };
 

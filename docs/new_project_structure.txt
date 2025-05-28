@@ -1,102 +1,943 @@
-pomo@pomo-nigesh:~/LidarProjectionModule$ tree
+pomo@pomo-nigesh:~/ws_LMP$ tree
 .
-├── calibration
-│   ├── include
-│   │   └── calibration
-│   │       ├── camera_calibrator.hpp
-│   │       ├── extrinsic_calibrator.hpp
-│   │       └── lidar_calibrator.hpp
-│   ├── src
-│   │   ├── camera_calibrator.cpp
-│   │   ├── extrinsic_calibrator.cpp
-│   │   └── lidar_calibrator.cpp
-│   └── tools
-│       ├── calibration_board.cpp
-│       └── calibration_node.cpp
-├── checkenv.py
-├── cmake-build-debug
-│   └── build.ninja
-├── CMakeLists.txt
-├── config
-│   └── lidar_params
-│       ├── vlp16_0.yaml
-│       └── vlp16_1.yaml
-├── docker
-│   ├── Dockerfile.dev
-│   ├── Dockerfile.jetson
-│   └── setup_cross_compile.sh
-├── docker-compose.yml
-├── docs
-│   ├── module_documentation.txt
-│   ├── new_project_structure.txt
-│   ├── project_details.txt
-│   └── project_structure.txt
-├── fusion
-│   ├── cuda
-│   │   ├── lane_fitting_kernels.cu
-│   │   └── projection_kernels.cu
-│   ├── include
-│   │   └── fusion
-│   │       ├── cuda_utils.hpp
-│   │       ├── lane_model.hpp
-│   │       └── projection.hpp
-│   └── src
-│       ├── lane_fusion_node.cpp
-│       ├── lane_model.cpp
-│       └── projection.cpp
-├── lane_detection
-│   ├── include
-│   │   └── lane_detection
-│   │       ├── lane_segmentation.hpp
-│   │       ├── tensor_utils.hpp
-│   │       └── yolo_detector.hpp
-│   └── src
-│       ├── lane_segmentation.cpp
-│       ├── tensor_utils.cpp
-│       └── yolo_detector.cpp
-├── launch
-│   ├── calibration.launch.py
-│   ├── lane_fusion.launch.py
-│   └── sensors.launch.py
-├── lidar_processing
-│   ├── cuda
-│   │   ├── ground_extraction.cu
-│   │   └── voxel_grid.cu
-│   ├── include
-│   │   └── lidar_processing
-│   │       ├── ground_extraction.hpp
-│   │       ├── point_cloud_proc.hpp
-│   │       └── point_types.hpp
-│   └── src
-│       ├── ground_extraction.cpp
-│       ├── lidar_ground_extraction_node.cpp
-│       └── point_cloud_proc.cpp
-├── logs
-│   └── build_log.txt
-├── package.xml
-├── README.md
-├── scripts
-│   ├── build_pytorch.sh
-│   ├── build.sh
-│   ├── calibration_collection.py
-│   ├── checkenv.py
-│   ├── install_pytorch.sh
-│   ├── setup_environment.sh
-│   └── start_dev_container.sh
-├── tests
-│   ├── test_calibration.cpp
-│   ├── test_lane_detection.cpp
-│   ├── test_lane_model.cpp
-│   └── test_projection.cpp
-└── utils
-    ├── include
-    │   └── utils
-    │       ├── memory_management.hpp
-    │       ├── time_sync.hpp
-    │       └── visualization.hpp
-    └── src
-        ├── memory_management.cpp
-        ├── time_sync.cpp
-        └── visualization.cpp
+├── build
+│   ├── atomic_configure
+│   │   ├── env.sh
+│   │   ├── local_setup.bash
+│   │   ├── local_setup.sh
+│   │   ├── local_setup.zsh
+│   │   ├── setup.bash
+│   │   ├── setup.sh
+│   │   ├── _setup_util.py
+│   │   └── setup.zsh
+│   ├── bin
+│   ├── catkin
+│   │   └── catkin_generated
+│   │       └── version
+│   │           └── package.cmake
+│   ├── catkin_generated
+│   │   ├── env_cached.sh
+│   │   ├── generate_cached_setup.py
+│   │   ├── installspace
+│   │   │   ├── env.sh
+│   │   │   ├── local_setup.bash
+│   │   │   ├── local_setup.sh
+│   │   │   ├── local_setup.zsh
+│   │   │   ├── setup.bash
+│   │   │   ├── setup.sh
+│   │   │   ├── _setup_util.py
+│   │   │   └── setup.zsh
+│   │   ├── order_packages.cmake
+│   │   ├── order_packages.py
+│   │   ├── setup_cached.sh
+│   │   └── stamps
+│   │       └── Project
+│   │           ├── interrogate_setup_dot_py.py.stamp
+│   │           ├── order_packages.cmake.em.stamp
+│   │           ├── package.xml.stamp
+│   │           └── _setup_util.py.stamp
+│   ├── CATKIN_IGNORE
+│   ├── catkin_make.cache
+│   ├── CMakeCache.txt
+│   ├── CMakeFiles
+│   │   ├── 3.28.1
+│   │   │   ├── CMakeCCompiler.cmake
+│   │   │   ├── CMakeCUDACompiler.cmake
+│   │   │   ├── CMakeCXXCompiler.cmake
+│   │   │   ├── CMakeDetermineCompilerABI_C.bin
+│   │   │   ├── CMakeDetermineCompilerABI_CUDA.bin
+│   │   │   ├── CMakeDetermineCompilerABI_CXX.bin
+│   │   │   ├── CMakeSystem.cmake
+│   │   │   ├── CompilerIdC
+│   │   │   │   ├── a.out
+│   │   │   │   ├── CMakeCCompilerId.c
+│   │   │   │   └── tmp
+│   │   │   ├── CompilerIdCUDA
+│   │   │   │   ├── a.out
+│   │   │   │   ├── CMakeCUDACompilerId.cu
+│   │   │   │   └── tmp
+│   │   │   │       ├── a_dlink.fatbin
+│   │   │   │       ├── a_dlink.fatbin.c
+│   │   │   │       ├── a_dlink.o
+│   │   │   │       ├── a_dlink.reg.c
+│   │   │   │       ├── a_dlink.sm_52.cubin
+│   │   │   │       ├── CMakeCUDACompilerId.cpp1.ii
+│   │   │   │       ├── CMakeCUDACompilerId.cpp4.ii
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.c
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.cpp
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.gpu
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.stub.c
+│   │   │   │       ├── CMakeCUDACompilerId.fatbin
+│   │   │   │       ├── CMakeCUDACompilerId.fatbin.c
+│   │   │   │       ├── CMakeCUDACompilerId.module_id
+│   │   │   │       ├── CMakeCUDACompilerId.o
+│   │   │   │       ├── CMakeCUDACompilerId.ptx
+│   │   │   │       └── CMakeCUDACompilerId.sm_52.cubin
+│   │   │   └── CompilerIdCXX
+│   │   │       ├── a.out
+│   │   │       ├── CMakeCXXCompilerId.cpp
+│   │   │       └── tmp
+│   │   ├── clean_test_results.dir
+│   │   │   ├── build.make
+│   │   │   ├── cmake_clean.cmake
+│   │   │   ├── compiler_depend.make
+│   │   │   ├── compiler_depend.ts
+│   │   │   ├── DependInfo.cmake
+│   │   │   └── progress.make
+│   │   ├── cmake.check_cache
+│   │   ├── CMakeConfigureLog.yaml
+│   │   ├── CMakeDirectoryInformation.cmake
+│   │   ├── CMakeRuleHashes.txt
+│   │   ├── download_extra_data.dir
+│   │   │   ├── build.make
+│   │   │   ├── cmake_clean.cmake
+│   │   │   ├── compiler_depend.make
+│   │   │   ├── compiler_depend.ts
+│   │   │   ├── DependInfo.cmake
+│   │   │   └── progress.make
+│   │   ├── doxygen.dir
+│   │   │   ├── build.make
+│   │   │   ├── cmake_clean.cmake
+│   │   │   ├── compiler_depend.make
+│   │   │   ├── compiler_depend.ts
+│   │   │   ├── DependInfo.cmake
+│   │   │   └── progress.make
+│   │   ├── Makefile2
+│   │   ├── Makefile.cmake
+│   │   ├── pkgRedirects
+│   │   ├── progress.marks
+│   │   ├── run_tests.dir
+│   │   │   ├── build.make
+│   │   │   ├── cmake_clean.cmake
+│   │   │   ├── compiler_depend.make
+│   │   │   ├── compiler_depend.ts
+│   │   │   ├── DependInfo.cmake
+│   │   │   └── progress.make
+│   │   ├── TargetDirectories.txt
+│   │   └── tests.dir
+│   │       ├── build.make
+│   │       ├── cmake_clean.cmake
+│   │       ├── compiler_depend.make
+│   │       ├── compiler_depend.ts
+│   │       ├── DependInfo.cmake
+│   │       └── progress.make
+│   ├── cmake_install.cmake
+│   ├── CTestConfiguration.ini
+│   ├── CTestCustom.cmake
+│   ├── CTestTestfile.cmake
+│   ├── gtest
+│   │   ├── CMakeFiles
+│   │   │   ├── CMakeDirectoryInformation.cmake
+│   │   │   └── progress.marks
+│   │   ├── cmake_install.cmake
+│   │   ├── CTestTestfile.cmake
+│   │   ├── googlemock
+│   │   │   ├── CMakeFiles
+│   │   │   │   ├── CMakeDirectoryInformation.cmake
+│   │   │   │   ├── gmock.dir
+│   │   │   │   │   ├── build.make
+│   │   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   │   ├── compiler_depend.make
+│   │   │   │   │   ├── compiler_depend.ts
+│   │   │   │   │   ├── DependInfo.cmake
+│   │   │   │   │   ├── depend.make
+│   │   │   │   │   ├── flags.make
+│   │   │   │   │   ├── link.txt
+│   │   │   │   │   ├── progress.make
+│   │   │   │   │   └── src
+│   │   │   │   ├── gmock_main.dir
+│   │   │   │   │   ├── build.make
+│   │   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   │   ├── compiler_depend.make
+│   │   │   │   │   ├── compiler_depend.ts
+│   │   │   │   │   ├── DependInfo.cmake
+│   │   │   │   │   ├── depend.make
+│   │   │   │   │   ├── flags.make
+│   │   │   │   │   ├── link.txt
+│   │   │   │   │   ├── progress.make
+│   │   │   │   │   └── src
+│   │   │   │   └── progress.marks
+│   │   │   ├── cmake_install.cmake
+│   │   │   ├── CTestTestfile.cmake
+│   │   │   └── Makefile
+│   │   ├── googletest
+│   │   │   ├── CMakeFiles
+│   │   │   │   ├── CMakeDirectoryInformation.cmake
+│   │   │   │   ├── gtest.dir
+│   │   │   │   │   ├── build.make
+│   │   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   │   ├── compiler_depend.make
+│   │   │   │   │   ├── compiler_depend.ts
+│   │   │   │   │   ├── DependInfo.cmake
+│   │   │   │   │   ├── depend.make
+│   │   │   │   │   ├── flags.make
+│   │   │   │   │   ├── link.txt
+│   │   │   │   │   ├── progress.make
+│   │   │   │   │   └── src
+│   │   │   │   ├── gtest_main.dir
+│   │   │   │   │   ├── build.make
+│   │   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   │   ├── compiler_depend.make
+│   │   │   │   │   ├── compiler_depend.ts
+│   │   │   │   │   ├── DependInfo.cmake
+│   │   │   │   │   ├── depend.make
+│   │   │   │   │   ├── flags.make
+│   │   │   │   │   ├── link.txt
+│   │   │   │   │   ├── progress.make
+│   │   │   │   │   └── src
+│   │   │   │   └── progress.marks
+│   │   │   ├── cmake_install.cmake
+│   │   │   ├── CTestTestfile.cmake
+│   │   │   └── Makefile
+│   │   ├── lib
+│   │   └── Makefile
+│   ├── LidarProjectionModule
+│   │   ├── catkin_generated
+│   │   │   ├── installspace
+│   │   │   │   ├── lane_fusionConfig.cmake
+│   │   │   │   ├── lane_fusionConfig-version.cmake
+│   │   │   │   └── lane_fusion.pc
+│   │   │   ├── ordered_paths.cmake
+│   │   │   ├── package.cmake
+│   │   │   ├── pkg.develspace.context.pc.py
+│   │   │   ├── pkg.installspace.context.pc.py
+│   │   │   └── stamps
+│   │   │       └── lane_fusion
+│   │   │           ├── package.xml.stamp
+│   │   │           └── pkg.pc.em.stamp
+│   │   ├── CMakeFiles
+│   │   │   ├── actionlib_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── actionlib_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── bond_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── bond_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── bond_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── bond_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── bond_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── CMakeDirectoryInformation.cmake
+│   │   │   ├── dynamic_reconfigure_gencfg.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── dynamic_reconfigure_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── dynamic_reconfigure_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── dynamic_reconfigure_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── dynamic_reconfigure_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── dynamic_reconfigure_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── geometry_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── geometry_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── geometry_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── geometry_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── geometry_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── nodelet_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── nodelet_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── nodelet_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── nodelet_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── nodelet_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── nodelet_topic_tools_gencfg.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── pcl_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── pcl_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── pcl_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── pcl_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── pcl_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── pcl_ros_gencfg.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── progress.marks
+│   │   │   ├── roscpp_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── roscpp_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── roscpp_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── roscpp_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── roscpp_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── rosgraph_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── rosgraph_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── rosgraph_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── rosgraph_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── rosgraph_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── sensor_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── sensor_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── sensor_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── sensor_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── sensor_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_srvs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_srvs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_srvs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_srvs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── std_srvs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf2_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf2_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf2_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf2_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf2_msgs_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── tf_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── topic_tools_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── topic_tools_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── topic_tools_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── topic_tools_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── topic_tools_generate_messages_py.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── velodyne_msgs_generate_messages_cpp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── velodyne_msgs_generate_messages_eus.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── velodyne_msgs_generate_messages_lisp.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   ├── velodyne_msgs_generate_messages_nodejs.dir
+│   │   │   │   ├── build.make
+│   │   │   │   ├── cmake_clean.cmake
+│   │   │   │   ├── compiler_depend.make
+│   │   │   │   ├── compiler_depend.ts
+│   │   │   │   ├── DependInfo.cmake
+│   │   │   │   └── progress.make
+│   │   │   └── velodyne_msgs_generate_messages_py.dir
+│   │   │       ├── build.make
+│   │   │       ├── cmake_clean.cmake
+│   │   │       ├── compiler_depend.make
+│   │   │       ├── compiler_depend.ts
+│   │   │       ├── DependInfo.cmake
+│   │   │       └── progress.make
+│   │   ├── cmake_install.cmake
+│   │   ├── CTestTestfile.cmake
+│   │   └── Makefile
+│   ├── Makefile
+│   └── test_results
+├── devel
+│   ├── cmake.lock
+│   ├── env.sh
+│   ├── lib
+│   │   └── pkgconfig
+│   │       └── lane_fusion.pc
+│   ├── local_setup.bash
+│   ├── local_setup.sh
+│   ├── local_setup.zsh
+│   ├── setup.bash
+│   ├── setup.sh
+│   ├── _setup_util.py
+│   ├── setup.zsh
+│   └── share
+│       └── lane_fusion
+│           └── cmake
+│               ├── lane_fusionConfig.cmake
+│               └── lane_fusionConfig-version.cmake
+└── src
+    ├── CMakeLists.txt -> /opt/ros/noetic/share/catkin/cmake/toplevel.cmake
+    └── LidarProjectionModule
+        ├── calibration
+        │   ├── include
+        │   │   └── calibration
+        │   │       ├── camera_calibrator.hpp
+        │   │       ├── extrinsic_calibrator.hpp
+        │   │       └── lidar_calibrator.hpp
+        │   ├── src
+        │   │   ├── camera_calibrator.cpp
+        │   │   ├── extrinsic_calibrator.cpp
+        │   │   └── lidar_calibrator.cpp
+        │   └── tools
+        │       ├── calibration_board.cpp
+        │       └── calibration_node.cpp
+        ├── checkenv.py
+        ├── cmake-build-debug
+        │   ├── build.ninja
+        │   └── CMakeFiles
+        │       ├── 3.29.6
+        │       │   ├── CMakeCCompiler.cmake
+        │       │   ├── CMakeCXXCompiler.cmake
+        │       │   ├── CMakeDetermineCompilerABI_C.bin
+        │       │   ├── CMakeDetermineCompilerABI_CXX.bin
+        │       │   ├── CMakeSystem.cmake
+        │       │   ├── CompilerIdC
+        │       │   │   └── CMakeCCompilerId.c
+        │       │   └── CompilerIdCXX
+        │       │       └── CMakeCXXCompilerId.cpp
+        │       ├── clion-Debug-log.txt
+        │       ├── clion-environment.txt
+        │       ├── cmake.check_cache
+        │       ├── CMakeConfigureLog.yaml
+        │       ├── rules.ninja
+        │       └── TargetDirectories.txt
+        ├── CMakeLists.txt
+        ├── config
+        │   ├── camera_params
+        │   │   ├── camera0.yaml
+        │   │   └── camera1.yaml
+        │   ├── lidar_params
+        │   │   ├── vlp16_0.yaml
+        │   │   └── vlp16_1.yaml
+        │   ├── network_params
+        │   │   └── yolov8n_seg_lane.yaml
+        │   └── system_config.yaml
+        ├── docker
+        │   ├── Dockerfile.dev
+        │   ├── Dockerfile.jetson
+        │   └── setup_cross_compile.sh
+        ├── docker-compose.yml
+        ├── docs
+        │   ├── Execution_pipeline.txt
+        │   ├── module_documentation.txt
+        │   ├── new_project_structure.txt
+        │   ├── project_details.txt
+        │   └── project_structure.txt
+        ├── fusion
+        │   ├── cuda
+        │   │   ├── lane_fitting_kernels.cu
+        │   │   └── projection_kernels.cu
+        │   ├── include
+        │   │   └── fusion
+        │   │       ├── cuda_utils.hpp
+        │   │       ├── lane_model.hpp
+        │   │       └── projection.hpp
+        │   └── src
+        │       ├── lane_fusion_node.cpp
+        │       ├── lane_model.cpp
+        │       └── projection.cpp
+        ├── lane_detection
+        │   ├── include
+        │   │   └── lane_detection
+        │   │       ├── lane_segmentation.hpp
+        │   │       ├── tensor_utils.hpp
+        │   │       └── yolo_detector.hpp
+        │   └── src
+        │       ├── lane_segmentation.cpp
+        │       ├── tensor_utils.cpp
+        │       └── yolo_detector.cpp
+        ├── launch
+        │   ├── calibration.launch.py
+        │   ├── lane_fusion.launch.py
+        │   ├── sensors.launch
+        │   └── sensors.launch.py
+        ├── lidar_processing
+        │   ├── cuda
+        │   │   ├── ground_extraction.cu
+        │   │   └── voxel_grid.cu
+        │   ├── include
+        │   │   └── lidar_processing
+        │   │       ├── ground_extraction.hpp
+        │   │       ├── point_cloud_proc.hpp
+        │   │       └── point_types.hpp
+        │   └── src
+        │       ├── ground_extraction.cpp
+        │       ├── lidar_ground_extraction_node.cpp
+        │       └── point_cloud_proc.cpp
+        ├── logs
+        │   └── build_log.txt
+        ├── package.xml
+        ├── README.md
+        ├── scripts
+        │   ├── build_pytorch.sh
+        │   ├── build.sh
+        │   ├── caliberation_collection.py
+        │   ├── calibration_collection.py
+        │   ├── checkenv.py
+        │   ├── install_pytorch.sh
+        │   ├── setup_environment.sh
+        │   └── start_dev_container.sh
+        ├── tests
+        │   ├── test_calibration.cpp
+        │   ├── test_lane_detection.cpp
+        │   ├── test_lane_model.cpp
+        │   └── test_projection.cpp
+        └── utils
+            ├── include
+            │   └── utils
+            │       ├── memory_management.hpp
+            │       ├── time_sync.hpp
+            │       └── visualization.hpp
+            └── src
+                ├── memory_management.cpp
+                ├── time_sync.cpp
+                └── visualization.cpp
 
-32 directories, 66 files
+175 directories, 764 files

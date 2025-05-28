@@ -34,6 +34,9 @@
     <build_depend>tf2</build_depend>
     <build_depend>tf2_ros</build_depend>
     <build_depend>tf2_geometry_msgs</build_depend>
+    <build_depend>visualization_msgs</build_depend>
+    <build_depend>pcl_conversions</build_depend>
+    <build_depend>tf2_eigen</build_depend>
 
     <!-- Build export dependencies -->
     <build_export_depend>roscpp</build_export_depend>
@@ -49,6 +52,9 @@
     <build_export_depend>tf2</build_export_depend>
     <build_export_depend>tf2_ros</build_export_depend>
     <build_export_depend>tf2_geometry_msgs</build_export_depend>
+    <build_export_depend>visualization_msgs</build_export_depend>
+    <build_export_depend>pcl_conversions</build_export_depend>
+    <build_export_depend>tf2_eigen</build_export_depend>
 
     <!-- Runtime dependencies -->
     <exec_depend>roscpp</exec_depend>
@@ -64,6 +70,9 @@
     <exec_depend>tf2</exec_depend>
     <exec_depend>tf2_ros</exec_depend>
     <exec_depend>tf2_geometry_msgs</exec_depend>
+    <exec_depend>visualization_msgs</exec_depend>
+    <exec_depend>pcl_conversions</exec_depend>
+    <exec_depend>tf2_eigen</exec_depend>
 
     <!-- Additional tool dependencies -->
     <exec_depend>usb_cam</exec_depend>
