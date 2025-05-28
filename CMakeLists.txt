@@ -27,7 +27,7 @@ find_package(CUDA REQUIRED)
 enable_language(CUDA)
 
 # TensorRT - Multiple search paths for different installations
-set(TENSORRT_ROOT "/workspace/tensorrt_loc/TensorRT-8.5.2.2" CACHE PATH "TensorRT root directory")
+set(TENSORRT_ROOT "/workspace/TensorRT-8.5.2.2" CACHE PATH "TensorRT root directory")
 
 find_path(TENSORRT_INCLUDE_DIR NvInfer.h
         HINTS ${TENSORRT_ROOT} ${CUDA_TOOLKIT_ROOT_DIR}
