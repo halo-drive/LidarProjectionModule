@@ -24,6 +24,7 @@ CTestTestfile.cmake
 *.onnx
 *.engine
 lane_detection/models/
+cmake-build-debug
 
 # IDE files
 .vscode/

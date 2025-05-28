@@ -44,3 +44,18 @@ postprocessing:
   morphology:
     kernel_size: 3
     iterations: 2
+
+# ROS Integration
+ros:
+  input_topic: "/camera0/usb_cam_node/image_raw"
+  output_topics:
+    lane_mask: "/camera0/lane_mask"
+    debug_image: "/camera0/lane_debug"
+    lane_detections: "/camera0/lane_detections"
+
+# Performance Settings
+performance:
+  enable_gpu_memory_pool: true
+  enable_zero_copy: true
+  async_inference: true
+  max_queue_size: 3

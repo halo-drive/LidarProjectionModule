@@ -52,9 +52,10 @@
       <param name="calibration" value="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
       <param name="min_range" value="0.4"/>
       <param name="max_range" value="100.0"/>
-      <param name="frame_id" value="lidar0_link"/>
       <param name="organize_cloud" value="false"/>
-      <param name="model" value="VLP16"/>
+
+      <!-- Topic remapping -->
+      <remap from="velodyne_points" to="/lidar0/velodyne_points"/>
     </node>
   </group>
 
@@ -76,7 +77,6 @@
       <param name="calibration" value="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
       <param name="min_range" value="0.4"/>
       <param name="max_range" value="100.0"/>
-      <param name="frame_id" value="lidar1_link"/>
       <param name="organize_cloud" value="false"/>
       <param name="model" value="VLP16"/>
     </node>

@@ -27,13 +27,13 @@ VLP-16 → Point Cloud → Space Transform → LiDAR-Registered Lane Points → 
 ### 1. Core Infrastructure Files
 
 #### **CMakeLists.txt & package.xml**
-- **Purpose**: ROS2 package definition and build system configuration
+- **Purpose**: ROS1 package definition and build system configuration
 - **Technical Role**: Defines dependencies (PCL, OpenCV, TensorRT), CUDA compilation flags, and library linking
-- **Critical Elements**: CUDA architecture targeting, TensorRT integration, ROS2 component dependencies
+- **Critical Elements**: CUDA architecture targeting, TensorRT integration, ROS1 component dependencies
 
 #### **scripts/setup_environment.sh**
 - **Function**: Environment configuration for Jetson AGX Orin
-- **Key Operations**: CUDA path configuration, TensorRT library setup, ROS2 workspace sourcing
+- **Key Operations**: CUDA path configuration, TensorRT library setup, ROS1 workspace sourcing
 - **Performance Impact**: Ensures optimal GPU memory allocation and library loading
 
 #### **scripts/build.sh**
@@ -78,7 +78,7 @@ VLP-16 → Point Cloud → Space Transform → LiDAR-Registered Lane Points → 
 
 #### **calibration/tools/calibration_board.cpp & calibration_node.cpp**
 - **Implementation**: Automated calibration target detection and pose estimation
-- **ROS2 Integration**: Service-based calibration interface with real-time feedback
+- **ROS1 Integration**: Service-based calibration interface with real-time feedback
 - **Quality Metrics**: Reprojection error analysis, transformation consistency validation
 
 ### 4. Lane Detection Module
@@ -158,7 +158,7 @@ VLP-16 → Point Cloud → Space Transform → LiDAR-Registered Lane Points → 
 - **Model Selection**: Score-based best fit selection with statistical validation
 
 #### **fusion/src/lane_fusion_node.cpp**
-- **ROS2 Node**: Main system orchestrator and data flow coordinator
+- **ROS1 Node**: Main system orchestrator and data flow coordinator
 - **Synchronization**: Multi-sensor data alignment with temporal interpolation
 - **Output Generation**: Lane model publishing with uncertainty quantification
 
@@ -287,7 +287,7 @@ The system employs hardware-timestamped data alignment with configurable tempora
 - **Storage**: NVMe SSD for model loading and data logging
 
 ### Software Dependencies
-- **ROS2**: Humble or later for lifecycle management
+- **ROS1**: Humble or later for lifecycle management
 - **TensorRT**: 8.5+ for YOLOv8n optimization
 - **CUDA**: 11.8+ for GPU acceleration
 - **PCL**: 1.12+ for point cloud processing

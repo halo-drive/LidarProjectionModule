@@ -1,0 +1,9 @@
+digraph G {
+"base_link" -> "camera0_link"[label="Broadcaster: /base_to_camera0\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1748352036.199 sec old)\nBuffer length: 0.000 sec\n"];
+"base_link" -> "lidar0_link"[label="Broadcaster: /base_to_lidar0\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1748352036.199 sec old)\nBuffer length: 0.000 sec\n"];
+"base_link" -> "lidar1_link"[label="Broadcaster: /base_to_lidar1\nAverage rate: 10000.000 Hz\nMost recent transform: 0.000 ( 1748352036.199 sec old)\nBuffer length: 0.000 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1748352036.199"[ shape=plaintext ] ;
+ }->"base_link";
+}
