@@ -25,12 +25,6 @@ fi
 
 echo -e "${GREEN}✓ Found workspace structure${NC}"
 
-# Environment setup
-echo -e "${YELLOW}Setting up environment...${NC}"
-export TENSORRT_ROOT=/usr/src/tensorrt
-export CUDA_ROOT=/usr/local/cuda
-export LD_LIBRARY_PATH=/usr/src/tensorrt/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
-
 # Check dependencies
 echo -e "${YELLOW}Checking dependencies...${NC}"
 

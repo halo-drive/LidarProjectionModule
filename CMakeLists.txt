@@ -196,7 +196,7 @@ if(TENSORRT_FOUND)
             ${TENSORRT_LIBRARY_PLUGIN}
             cublas
             curand
-            cudnn
+
     )
 
     # YOLO Detector Library with TensorRT
