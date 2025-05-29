@@ -82,35 +82,35 @@ endif()
 ## catkin specific configuration
 ##############################################
 catkin_package(
-        INCLUDE_DIRS 
-            lidar_processing/include
-            lane_detection/include
-        LIBRARIES 
-            ${PROJECT_NAME}_lidar_processing
-            ${PROJECT_NAME}_tensor_utils
-            ${PROJECT_NAME}_yolo_detector
-            ${PROJECT_NAME}_lane_segmentation
+        INCLUDE_DIRS
+        lidar_processing/include
+        lane_detection/include
+        LIBRARIES
+        ${PROJECT_NAME}_lidar_processing
+        ${PROJECT_NAME}_tensor_utils
+        ${PROJECT_NAME}_yolo_detector
+        ${PROJECT_NAME}_lane_segmentation
         CATKIN_DEPENDS
-            roscpp
-            rospy
-            std_msgs
-            sensor_msgs
-            geometry_msgs
-            visualization_msgs
-            cv_bridge
-            image_transport
-            pcl_ros
-            pcl_conversions
-            velodyne_msgs
-            message_filters
-            tf2
-            tf2_ros
-            tf2_geometry_msgs
-            tf2_eigen
+        roscpp
+        rospy
+        std_msgs
+        sensor_msgs
+        geometry_msgs
+        visualization_msgs
+        cv_bridge
+        image_transport
+        pcl_ros
+        pcl_conversions
+        velodyne_msgs
+        message_filters
+        tf2
+        tf2_ros
+        tf2_geometry_msgs
+        tf2_eigen
         DEPENDS
-            OpenCV
-            PCL
-            Boost
+        OpenCV
+        PCL
+        Boost
 )
 
 ##############################################
@@ -151,29 +151,30 @@ endif()
 
 # Point cloud processing library
 add_library(${PROJECT_NAME}_lidar_processing
-    lidar_processing/src/point_cloud_proc.cpp
-    lidar_processing/src/ground_extraction.cpp
+        lidar_processing/src/point_cloud_proc.cpp
+        lidar_processing/src/ground_extraction.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_lidar_processing
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ${Boost_LIBRARIES}
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 # CUDA ground extraction library
 if(CUDA_FOUND)
     cuda_add_library(${PROJECT_NAME}_cuda_ground_extraction
-        lidar_processing/cuda/ground_extraction.cu
+            lidar_processing/cuda/ground_extraction.cu
+            lidar_processing/cuda/voxel_grid.cu
     )
-    
+
     target_link_libraries(${PROJECT_NAME}_cuda_ground_extraction
-        ${CUDA_LIBRARIES}
+            ${CUDA_LIBRARIES}
     )
-    
+
     # Link CUDA library to main library
     target_link_libraries(${PROJECT_NAME}_lidar_processing
-        ${PROJECT_NAME}_cuda_ground_extraction
+            ${PROJECT_NAME}_cuda_ground_extraction
     )
 endif()
 
@@ -182,12 +183,22 @@ endif()
 ###################
 
 if(TENSORRT_FOUND)
-    # CUDA Tensor Utilities
-    cuda_add_library(${PROJECT_NAME}_tensor_utils
+    # CUDA Tensor Kernels Library (separate compilation for CUDA)
+    cuda_add_library(${PROJECT_NAME}_tensor_kernels
+            lane_detection/cuda/tensor_kernels.cu
+    )
+
+    target_link_libraries(${PROJECT_NAME}_tensor_kernels
+            ${CUDA_LIBRARIES}
+    )
+
+    # CUDA Tensor Utilities (C++ wrapper + PerformanceMonitor)
+    add_library(${PROJECT_NAME}_tensor_utils
             lane_detection/src/tensor_utils.cpp
     )
 
     target_link_libraries(${PROJECT_NAME}_tensor_utils
+            ${PROJECT_NAME}_tensor_kernels
             ${catkin_LIBRARIES}
             ${OpenCV_LIBRARIES}
             ${CUDA_LIBRARIES}
@@ -196,7 +207,6 @@ if(TENSORRT_FOUND)
             ${TENSORRT_LIBRARY_PLUGIN}
             cublas
             curand
-
     )
 
     # YOLO Detector Library with TensorRT
@@ -206,6 +216,7 @@ if(TENSORRT_FOUND)
 
     target_link_libraries(${PROJECT_NAME}_yolo_detector
             ${PROJECT_NAME}_tensor_utils
+            ${PROJECT_NAME}_tensor_kernels
             ${catkin_LIBRARIES}
             ${OpenCV_LIBRARIES}
             ${CUDA_LIBRARIES}
@@ -231,14 +242,14 @@ endif()
 
 # Ground extraction node executable (YOUR WORK)
 add_executable(lidar_ground_extraction_node
-    lidar_processing/src/lidar_ground_extraction_node.cpp
+        lidar_processing/src/lidar_ground_extraction_node.cpp
 )
 
 target_link_libraries(lidar_ground_extraction_node
-    ${PROJECT_NAME}_lidar_processing
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ${Boost_LIBRARIES}
+        ${PROJECT_NAME}_lidar_processing
+        ${catkin_LIBRARIES}
+        ${PCL_LIBRARIES}
+        ${Boost_LIBRARIES}
 )
 
 # Lane Detection Node (TENSORRT WORK)
@@ -251,8 +262,10 @@ if(TENSORRT_FOUND)
             ${PROJECT_NAME}_yolo_detector
             ${PROJECT_NAME}_lane_segmentation
             ${PROJECT_NAME}_tensor_utils
+            ${PROJECT_NAME}_tensor_kernels
             ${catkin_LIBRARIES}
             ${OpenCV_LIBRARIES}
+            ${CUDA_LIBRARIES}
     )
 endif()
 
@@ -261,25 +274,30 @@ endif()
 ##############################################
 
 # Add dependencies
-add_dependencies(${PROJECT_NAME}_lidar_processing 
-    ${${PROJECT_NAME}_EXPORTED_TARGETS} 
-    ${catkin_EXPORTED_TARGETS}
+add_dependencies(${PROJECT_NAME}_lidar_processing
+        ${${PROJECT_NAME}_EXPORTED_TARGETS}
+        ${catkin_EXPORTED_TARGETS}
 )
 
-add_dependencies(lidar_ground_extraction_node 
-    ${${PROJECT_NAME}_EXPORTED_TARGETS} 
-    ${catkin_EXPORTED_TARGETS}
+add_dependencies(lidar_ground_extraction_node
+        ${${PROJECT_NAME}_EXPORTED_TARGETS}
+        ${catkin_EXPORTED_TARGETS}
 )
 
 if(TENSORRT_FOUND)
-    add_dependencies(${PROJECT_NAME}_tensor_utils 
-        ${${PROJECT_NAME}_EXPORTED_TARGETS} 
-        ${catkin_EXPORTED_TARGETS}
+    add_dependencies(${PROJECT_NAME}_tensor_kernels
+            ${${PROJECT_NAME}_EXPORTED_TARGETS}
+            ${catkin_EXPORTED_TARGETS}
     )
-    
-    add_dependencies(lane_detection_node 
-        ${${PROJECT_NAME}_EXPORTED_TARGETS} 
-        ${catkin_EXPORTED_TARGETS}
+
+    add_dependencies(${PROJECT_NAME}_tensor_utils
+            ${${PROJECT_NAME}_EXPORTED_TARGETS}
+            ${catkin_EXPORTED_TARGETS}
+    )
+
+    add_dependencies(lane_detection_node
+            ${${PROJECT_NAME}_EXPORTED_TARGETS}
+            ${catkin_EXPORTED_TARGETS}
     )
 endif()
 
@@ -288,20 +306,20 @@ endif()
 ##############################################
 
 # Install executables
-install(TARGETS 
+install(TARGETS
         lidar_ground_extraction_node
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 if(TENSORRT_FOUND)
-    install(TARGETS 
+    install(TARGETS
             lane_detection_node
             RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
     )
 endif()
 
 # Install libraries
-install(TARGETS 
+install(TARGETS
         ${PROJECT_NAME}_lidar_processing
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -313,6 +331,7 @@ if(TENSORRT_FOUND)
             ${PROJECT_NAME}_yolo_detector
             ${PROJECT_NAME}_lane_segmentation
             ${PROJECT_NAME}_tensor_utils
+            ${PROJECT_NAME}_tensor_kernels
             ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
             LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
             RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
@@ -371,3 +390,10 @@ if(TENSORRT_FOUND)
     message(STATUS "  - lane_detection_node (Lane detection)")
 endif()
 message(STATUS "==========================================")
+
+# Print CUDA kernel compilation status
+if(CUDA_FOUND AND TENSORRT_FOUND)
+    message(STATUS "CUDA Kernels will be compiled:")
+    message(STATUS "  - tensor_kernels.cu -> liblane_fusion_tensor_kernels.so")
+    message(STATUS "  - ground_extraction.cu -> liblane_fusion_cuda_ground_extraction.so")
+endif()

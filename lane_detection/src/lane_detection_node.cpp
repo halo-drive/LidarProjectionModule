@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
@@ -315,9 +316,9 @@ private:
     void loadYoloConfig(const std::string& config_path) {
         // Load YOLO configuration from YAML file
         // This is a simplified version - in practice, you'd use yaml-cpp
-        yolo_config_.model_path = ros::package::getPath("LidarProjectionLane") + 
+        yolo_config_.model_path = ros::package::getPath("lane_fusion") +
                                  "/lane_detection/models/yolov8n-seg-lane.onnx";
-        yolo_config_.engine_path = ros::package::getPath("LidarProjectionLane") + 
+        yolo_config_.engine_path = ros::package::getPath("lane_fusion") +
                                   "/lane_detection/models/yolov8n-seg-lane.engine";
         
         yolo_config_.input_size = cv::Size(416, 416);

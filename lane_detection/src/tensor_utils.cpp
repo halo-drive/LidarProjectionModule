@@ -399,3 +399,175 @@ namespace utils {
 }
 
 } // namespace lane_detection
+
+
+// PerformanceMonitor Implementation
+PerformanceMonitor::PerformanceMonitor() 
+    : current_memory_usage_(0), frame_count_(0) {
+    session_start_ = std::chrono::high_resolution_clock::now();
+}
+
+// PerformanceMonitor Implementation
+PerformanceMonitor::PerformanceMonitor() 
+    : current_memory_usage_(0), frame_count_(0) {
+    session_start_ = std::chrono::high_resolution_clock::now();
+}
+
+void PerformanceMonitor::startTiming(const std::string& operation) {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    timing_data_[operation].start_time = std::chrono::high_resolution_clock::now();
+}
+
+void PerformanceMonitor::endTiming(const std::string& operation) {
+    auto end_time = std::chrono::high_resolution_clock::now();
+    
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    auto it = timing_data_.find(operation);
+    if (it == timing_data_.end()) {
+        std::cerr << "Warning: endTiming called for operation '" << operation 
+                  << "' without corresponding startTiming" << std::endl;
+        return;
+    }
+    
+    auto& timing = it->second;
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+        end_time - timing.start_time).count() / 1000.0; // Convert to milliseconds
+    
+    timing.total_time += duration;
+    timing.count++;
+}
+
+void PerformanceMonitor::recordInferenceTime(double time_ms) {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    inference_times_.push_back(time_ms);
+    frame_count_++;
+    
+    // Limit vector size to prevent memory growth
+    const size_t MAX_SAMPLES = 1000;
+    if (inference_times_.size() > MAX_SAMPLES) {
+        inference_times_.erase(inference_times_.begin());
+    }
+}
+
+void PerformanceMonitor::recordMemoryUsage(size_t memory_bytes) {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    current_memory_usage_ = memory_bytes;
+}
+
+double PerformanceMonitor::getCurrentFPS() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+        current_time - session_start_).count() / 1000.0;
+    
+    if (elapsed_seconds <= 0.0 || frame_count_ == 0) {
+        return 0.0;
+    }
+    
+    return static_cast<double>(frame_count_) / elapsed_seconds;
+}
+
+double PerformanceMonitor::getAverageInferenceTime() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    if (inference_times_.empty()) {
+        return 0.0;
+    }
+    
+    double sum = 0.0;
+    for (double time : inference_times_) {
+        sum += time;
+    }
+    
+    return sum / inference_times_.size();
+}
+
+double PerformanceMonitor::getMaxInferenceTime() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    if (inference_times_.empty()) {
+        return 0.0;
+    }
+    
+    return *std::max_element(inference_times_.begin(), inference_times_.end());
+}
+
+double PerformanceMonitor::getMinInferenceTime() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    if (inference_times_.empty()) {
+        return 0.0;
+    }
+    
+    return *std::min_element(inference_times_.begin(), inference_times_.end());
+}
+
+size_t PerformanceMonitor::getCurrentMemoryUsage() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    return current_memory_usage_;
+}
+
+void PerformanceMonitor::printStatistics() const {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    std::cout << "\n=== Performance Monitor Statistics ===" << std::endl;
+    
+    // Overall FPS
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+        current_time - session_start_).count() / 1000.0;
+    
+    if (elapsed_seconds > 0.0 && frame_count_ > 0) {
+        double fps = static_cast<double>(frame_count_) / elapsed_seconds;
+        std::cout << "Overall FPS: " << std::fixed << std::setprecision(2) << fps << std::endl;
+    }
+    
+    // Inference time statistics
+    if (!inference_times_.empty()) {
+        std::cout << "Inference Time Statistics:" << std::endl;
+        std::cout << "  Average: " << std::fixed << std::setprecision(2) 
+                  << getAverageInferenceTime() << " ms" << std::endl;
+        std::cout << "  Min: " << std::fixed << std::setprecision(2) 
+                  << getMinInferenceTime() << " ms" << std::endl;
+        std::cout << "  Max: " << std::fixed << std::setprecision(2) 
+                  << getMaxInferenceTime() << " ms" << std::endl;
+        std::cout << "  Samples: " << inference_times_.size() << std::endl;
+    }
+    
+    // Memory usage
+    if (current_memory_usage_ > 0) {
+        std::cout << "Memory Usage: " << std::fixed << std::setprecision(2) 
+                  << static_cast<double>(current_memory_usage_) / (1024 * 1024) << " MB" << std::endl;
+    }
+    
+    // Operation timing statistics
+    if (!timing_data_.empty()) {
+        std::cout << "Operation Timing:" << std::endl;
+        for (const auto& pair : timing_data_) {
+            const std::string& operation = pair.first;
+            const TimingData& timing = pair.second;
+            
+            if (timing.count > 0) {
+                double avg_time = timing.total_time / timing.count;
+                std::cout << "  " << operation << ": " << std::fixed << std::setprecision(2) 
+                          << avg_time << " ms (avg over " << timing.count << " calls)" << std::endl;
+            }
+        }
+    }
+    
+    std::cout << "Total Frames Processed: " << frame_count_ << std::endl;
+    std::cout << "====================================" << std::endl;
+}
+
+void PerformanceMonitor::reset() {
+    std::lock_guard<std::mutex> lock(stats_mutex_);
+    
+    timing_data_.clear();
+    inference_times_.clear();
+    current_memory_usage_ = 0;
+    frame_count_ = 0;
+    session_start_ = std::chrono::high_resolution_clock::now();
+}

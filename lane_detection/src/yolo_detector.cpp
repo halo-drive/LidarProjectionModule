@@ -1,9 +1,11 @@
 #include "yolo_detector.hpp"
 #include "tensor_utils.hpp"
+#include <ros/ros.h>
+#include <ros/package.h>
 #include <iostream>
 #include <algorithm>
 #include <chrono>
-#include <ros/package.h>
+
 
 // External CUDA kernel declarations
 extern "C" {
@@ -459,10 +461,9 @@ cv::Mat YoloDetector::morphologyCleanup(const cv::Mat& mask) {
     return cleaned;
 }
 
-bool YoloDetector::buildEngine(const std::string& onnx_path) {
-    engine_ = EngineUtils::buildEngineFromOnnx(onnx_path, config_.precision,
-                                              config_.batch_size, config_.workspace_size);
-    return engine_ != nullptr;
+std::unique_ptr<nvinfer1::ICudaEngine> YoloDetector::buildEngine(const std::string& onnx_path) {
+    return EngineUtils::buildEngineFromOnnx(onnx_path, config_.precision,
+                                           config_.batch_size, config_.workspace_size);
 }
 
 bool YoloDetector::saveEngine(const std::string& engine_path) {

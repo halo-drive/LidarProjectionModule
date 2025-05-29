@@ -1,22 +1,21 @@
-// Forward declarations to avoid circular dependencies
-namespace lane_detection {
-    struct YoloConfig;
-    struct LaneDetection;
-    class TensorBuffer;
-    class PerformanceMonitor;
-}#ifndef LANE_DETECTION_YOLO_DETECTOR_HPP
+#ifndef LANE_DETECTION_YOLO_DETECTOR_HPP
 #define LANE_DETECTION_YOLO_DETECTOR_HPP
 
 #include <opencv2/opencv.hpp>
 #include <memory>
 #include <vector>
 #include <string>
+#include <new>  // Required for placement new operator
 #include <NvInfer.h>
 #include <cuda_runtime.h>
 
 #include "tensor_utils.hpp"
 
 namespace lane_detection {
+
+// Forward declarations
+class TensorBuffer;
+class PerformanceMonitor;
 
 /**
  * @brief Configuration structure for YOLOv8 lane detection
@@ -124,6 +123,7 @@ private:
     std::unique_ptr<TensorBuffer> input_buffer_;
     std::unique_ptr<TensorBuffer> detection_buffer_;
     std::unique_ptr<TensorBuffer> segmentation_buffer_;
+    std::unique_ptr<nvinfer1::ICudaEngine> buildEngine(const std::string& onnx_path);
 
     // CUDA stream for async operations
     cudaStream_t cuda_stream_;
@@ -207,7 +207,6 @@ private:
     cv::Mat morphologyCleanup(const cv::Mat& mask);
 
     // Engine management
-    bool buildEngine(const std::string& onnx_path);
     bool saveEngine(const std::string& engine_path);
     bool allocateBuffers();
 
