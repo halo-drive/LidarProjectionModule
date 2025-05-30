@@ -115,7 +115,7 @@ private:
         
         // Publishers
         lane_mask_pub_ = it_.advertise(output_topic_prefix_ + "mask", 1);
-        debug_image_pub_ = it_.advertise(output_topic_prefix_ + "debug", 1);
+        debug_image_pub_ = it_.advertise(output_topic_prefix_ + "debug_image", 1);
         lane_detections_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
             output_topic_prefix_ + "detections", 1);
         lane_markers_pub_ = nh_.advertise<visualization_msgs::Marker>(
@@ -314,36 +314,88 @@ private:
     }
     
     void loadYoloConfig(const std::string& config_path) {
-        // Load YOLO configuration from YAML file
-        // This is a simplified version - in practice, you'd use yaml-cpp
+        // Load YOLO configuration with parameter validation
         yolo_config_.model_path = ros::package::getPath("lane_fusion") +
                                  "/lane_detection/models/yolov8n-seg-lane.onnx";
         yolo_config_.engine_path = ros::package::getPath("lane_fusion") +
                                   "/lane_detection/models/yolov8n-seg-lane.engine";
-        
-        yolo_config_.input_size = cv::Size(416, 416);
-        yolo_config_.confidence_threshold = 0.5f;
-        yolo_config_.nms_threshold = 0.45f;
-        yolo_config_.precision = "FP16";
-        yolo_config_.batch_size = 1;
-        yolo_config_.workspace_size = 1073741824; // 1GB
-        
-        ROS_INFO("YOLO configuration loaded");
-    }
-    
-    void loadSegmentationConfig() {
-        // Load segmentation configuration
-        segmentation_config_.min_area_threshold = 100;
-        segmentation_config_.max_area_threshold = 50000;
-        segmentation_config_.contour_epsilon = 2.0;
-        segmentation_config_.morph_kernel = cv::Size(3, 3);
-        segmentation_config_.morph_iterations = 2;
-        segmentation_config_.hough_threshold = 50;
-        segmentation_config_.min_line_length = 30.0;
-        segmentation_config_.max_line_gap = 10.0;
-        segmentation_config_.enable_debug_output = enable_debug_output_;
-        
-        ROS_INFO("Lane segmentation configuration loaded");
+
+        // Get input dimensions from ROS parameters with validation
+        int input_width, input_height;
+        pnh_.param<int>("yolo/input_width", input_width, 416);
+        pnh_.param<int>("yolo/input_height", input_height, 416);
+
+        // Validate input dimensions
+        if (input_width <= 0 || input_height <= 0 ||
+            input_width > 1920 || input_height > 1080) {
+            ROS_WARN("Invalid input dimensions (%dx%d), using defaults (416x416)",
+                     input_width, input_height);
+            input_width = 416;
+            input_height = 416;
+        }
+
+        yolo_config_.input_size = cv::Size(input_width, input_height);
+
+        // Load other parameters with validation
+        double confidence_threshold, nms_threshold;
+        pnh_.param<double>("yolo/confidence_threshold", confidence_threshold, 0.5);
+        pnh_.param<double>("yolo/nms_threshold", nms_threshold, 0.45);
+
+        yolo_config_.confidence_threshold = static_cast<float>(
+            std::max(0.1, std::min(0.9, confidence_threshold)));
+        yolo_config_.nms_threshold = static_cast<float>(
+            std::max(0.1, std::min(0.9, nms_threshold)));
+
+        // Enhanced segmentation parameters
+        pnh_.param<bool>("yolo/use_advanced_segmentation",
+                         yolo_config_.use_advanced_segmentation, false);
+        pnh_.param<int>("yolo/morph_kernel_size",
+                        yolo_config_.morph_kernel_size, 3);
+        pnh_.param<int>("yolo/morph_iterations",
+                        yolo_config_.morph_iterations, 2);
+        pnh_.param<double>("yolo/segmentation_confidence_threshold",
+                           confidence_threshold, 0.3);
+        yolo_config_.segmentation_confidence_threshold = static_cast<float>(confidence_threshold);
+
+        // Bounds checking configuration
+        pnh_.param<bool>("yolo/enable_strict_bounds_checking",
+                         yolo_config_.enable_strict_bounds_checking, true);
+        pnh_.param<bool>("yolo/log_roi_violations",
+                         yolo_config_.log_roi_violations, true);
+
+        // TensorRT configuration - Fix type mismatch
+        std::string precision;
+        pnh_.param<std::string>("yolo/tensorrt_precision", precision, "FP16");
+        yolo_config_.precision = precision;
+        pnh_.param<int>("yolo/batch_size", yolo_config_.batch_size, 1);
+
+        // Fix workspace_size type mismatch: use intermediate int variable
+        int workspace_size_mb;
+        pnh_.param<int>("yolo/workspace_size_mb", workspace_size_mb, 1024);  // MB units
+        yolo_config_.workspace_size = static_cast<size_t>(workspace_size_mb) * 1024 * 1024;  // Convert to bytes
+
+        ROS_INFO("YOLO configuration loaded:");
+        ROS_INFO("  Input size: %dx%d", yolo_config_.input_size.width, yolo_config_.input_size.height);
+        ROS_INFO("  Confidence threshold: %.3f", yolo_config_.confidence_threshold);
+        ROS_INFO("  NMS threshold: %.3f", yolo_config_.nms_threshold);
+        ROS_INFO("  Workspace size: %zu MB", yolo_config_.workspace_size / (1024 * 1024));
+        ROS_INFO("  Advanced segmentation: %s", yolo_config_.use_advanced_segmentation ? "enabled" : "disabled");
+        ROS_INFO("  Bounds checking: %s", yolo_config_.enable_strict_bounds_checking ? "strict" : "relaxed");
+        }
+
+        void loadSegmentationConfig() {
+            // Load segmentation configuration
+            segmentation_config_.min_area_threshold = 100;
+            segmentation_config_.max_area_threshold = 50000;
+            segmentation_config_.contour_epsilon = 2.0;
+            segmentation_config_.morph_kernel = cv::Size(3, 3);
+            segmentation_config_.morph_iterations = 2;
+            segmentation_config_.hough_threshold = 50;
+            segmentation_config_.min_line_length = 30.0;
+            segmentation_config_.max_line_gap = 10.0;
+            segmentation_config_.enable_debug_output = enable_debug_output_;
+
+            ROS_INFO("Lane segmentation configuration loaded");
     }
 };
 

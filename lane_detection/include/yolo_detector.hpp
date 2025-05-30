@@ -37,7 +37,7 @@ struct YoloConfig {
     int max_detections = 100;                  // Maximum number of detections
 
     // TensorRT optimization
-    std::string precision = "FP16";            // Precision mode: FP32, FP16, INT8
+    std::string precision = "FP32";            // Precision mode: FP32, FP16, INT8
     int batch_size = 1;                        // Batch size for inference
     size_t workspace_size = 1073741824;        // TensorRT workspace size (1GB)
 
@@ -46,6 +46,14 @@ struct YoloConfig {
     int min_area = 100;                        // Minimum area for valid lanes
     int morph_kernel_size = 3;                 // Morphological operation kernel size
     int morph_iterations = 2;                  // Number of morphological iterations
+
+    // Enhanced segmentation configuration
+    bool use_advanced_segmentation = false;
+    float segmentation_confidence_threshold = 0.3f;
+
+    // Bounds validation settings
+    bool enable_strict_bounds_checking = true;
+    bool log_roi_violations = true;
 };
 
 /**
@@ -191,6 +199,15 @@ private:
                                const std::vector<float>& scores,
                                float nms_threshold);
 
+    void processAdvancedSegmentation(const float* segmentation_data,
+                                cv::Mat& mask,
+                                const cv::Rect& roi);
+
+    cv::Mat applyMorphologicalCleanup(const cv::Mat& input_mask);
+
+    bool validateProcessingParameters() const;
+
+    void logProcessingError(const std::string& funtion_time, const std::string& error_message) const;
     /**
      * @brief Calculate Intersection over Union (IoU) between two boxes
      * @param box1 First bounding box

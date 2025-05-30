@@ -1,0 +1,4 @@
+roslaunch lane_fusion sensors.launch enable_camera0:=true enable_lidar0:=false enable_lidar1:=false enable_ground_extraction:=false
+
+
+roslaunch lane_fusion lane_detection.launch camera_topic:=/camera0/usb_cam_node/image_raw

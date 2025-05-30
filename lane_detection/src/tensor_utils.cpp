@@ -4,6 +4,8 @@
 #include <memory>
 #include <sstream>
 #include <cstring>
+#include <algorithm>
+#include <iomanip>
 
 namespace lane_detection {
 
@@ -398,14 +400,7 @@ namespace utils {
     }
 }
 
-} // namespace lane_detection
 
-
-// PerformanceMonitor Implementation
-PerformanceMonitor::PerformanceMonitor() 
-    : current_memory_usage_(0), frame_count_(0) {
-    session_start_ = std::chrono::high_resolution_clock::now();
-}
 
 // PerformanceMonitor Implementation
 PerformanceMonitor::PerformanceMonitor() 
@@ -571,3 +566,5 @@ void PerformanceMonitor::reset() {
     frame_count_ = 0;
     session_start_ = std::chrono::high_resolution_clock::now();
 }
+
+} // namespace lane_detection

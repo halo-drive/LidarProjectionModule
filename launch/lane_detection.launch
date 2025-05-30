@@ -1,51 +1,84 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Lane Detection Node Launch File -->
+  <!-- CORRECTED LANE DETECTION WITH PROPER YOLO DIMENSIONS -->
 
   <!-- Arguments -->
-  <arg name="camera_topic" default="/camera0/usb_cam_node/image_raw"/>
-  <arg name="output_prefix" default="/camera0/lane_"/>
-  <arg name="config_path" default="$(find LidarProjectionLane)/config/network_params/yolov8n_seg_lane.yaml"/>
+  <arg name="camera_topic" default="/camera0/image_raw"/>
+  <arg name="camera_info_topic" default="/camera0/camera_info"/>
+  <arg name="output_prefix" default="/camera0/lane_detection/"/>
+  <arg name="config_path" default="$(find lane_fusion)/config/network_params/yolov8n_seg_lane.yaml"/>
   <arg name="enable_debug" default="true"/>
   <arg name="enable_performance_monitoring" default="true"/>
   <arg name="target_fps" default="30.0"/>
 
+  <!-- Frame consistency parameters -->
+  <arg name="camera_frame" default="camera0_link"/>
+  <arg name="base_frame" default="base_link"/>
+
   <!-- Lane Detection Node -->
-  <node name="lane_detection_node" pkg="LidarProjectionLane" type="lane_detection_node" output="screen">
+  <node name="lane_detection_node" pkg="lane_fusion" type="lane_detection_node" output="screen">
+    
     <!-- Topic Configuration -->
-    <param name="input_topic" value="$(arg camera_topic)"/>
+    <param name="input_image_topic" value="$(arg camera_topic)"/>
+    <param name="input_camera_info_topic" value="$(arg camera_info_topic)"/>
     <param name="output_topic_prefix" value="$(arg output_prefix)"/>
-    <param name="frame_id" value="camera0_link"/>
+    
+    <!-- Frame configuration -->
+    <param name="camera_frame_id" value="$(arg camera_frame)"/>
+    <param name="base_frame_id" value="$(arg base_frame)"/>
+    <param name="publish_in_camera_frame" value="true"/>
+    <param name="publish_synchronized_stamps" value="true"/>
 
     <!-- Model Configuration -->
     <param name="config_path" value="$(arg config_path)"/>
+    <param name="model_path" value="$(find lane_fusion)/lane_detection/models/yolov8n-seg-lane.onnx"/>
 
     <!-- Processing Configuration -->
     <param name="enable_debug_output" value="$(arg enable_debug)"/>
     <param name="enable_performance_monitoring" value="$(arg enable_performance_monitoring)"/>
     <param name="target_fps" value="$(arg target_fps)"/>
 
-    <!-- YOLO Model Parameters -->
-    <param name="yolo/confidence_threshold" value="0.5"/>
+    <!-- CRITICAL FIX: YOLO Model Parameters - Match TensorRT Engine -->
+    <param name="yolo/confidence_threshold" value="0.6"/>
     <param name="yolo/nms_threshold" value="0.45"/>
-    <param name="yolo/max_detections" value="100"/>
+    <param name="yolo/max_detections" value="50"/>
+    
+    <!-- CORRECTED: Match TensorRT engine dimensions (1x3x416x416) -->
     <param name="yolo/input_width" value="416"/>
     <param name="yolo/input_height" value="416"/>
-    <param name="yolo/tensorrt_precision" value="FP16"/>
+    <param name="yolo/use_advanced_segmentation" value="true"/>
+    <param name="yolo/tensorrt_precision" value="FP32"/>
     <param name="yolo/batch_size" value="1"/>
     <param name="yolo/workspace_size" value="1073741824"/>
 
+    <!-- Image Preprocessing Parameters for 640x480 → 416x416 -->
+    <param name="preprocessing/resize_method" value="letterbox"/>
+    <param name="preprocessing/maintain_aspect_ratio" value="true"/>
+    <param name="preprocessing/pad_color_r" value="114"/>
+    <param name="preprocessing/pad_color_g" value="114"/>
+    <param name="preprocessing/pad_color_b" value="114"/>
+    <param name="preprocessing/normalize" value="true"/>
+    <param name="preprocessing/scale_factor" value="0.00392157"/>  <!-- 1/255 -->
+
     <!-- Lane Segmentation Parameters -->
-    <param name="segmentation/min_area_threshold" value="100"/>
-    <param name="segmentation/max_area_threshold" value="50000"/>
+    <param name="segmentation/min_area_threshold" value="200"/>
+    <param name="segmentation/max_area_threshold" value="30000"/>
     <param name="segmentation/contour_epsilon" value="2.0"/>
     <param name="segmentation/morph_kernel_size" value="3"/>
     <param name="segmentation/morph_iterations" value="2"/>
-    <param name="segmentation/hough_threshold" value="50"/>
-    <param name="segmentation/min_line_length" value="30.0"/>
-    <param name="segmentation/max_line_gap" value="10.0"/>
-    <param name="segmentation/min_slope_threshold" value="0.3"/>
-    <param name="segmentation/max_slope_threshold" value="3.0"/>
+    <param name="segmentation/gaussian_blur_size" value="5"/>
+    
+    <!-- Lane fitting parameters -->
+    <param name="segmentation/polynomial_order" value="2"/>
+    <param name="segmentation/min_lane_width_pixels" value="15"/>     <!-- Adjusted for 416x416 -->
+    <param name="segmentation/max_lane_width_pixels" value="150"/>    <!-- Adjusted for 416x416 -->
+    <param name="segmentation/roi_bottom_offset" value="0.8"/>
+    <param name="segmentation/roi_top_offset" value="0.4"/>
+
+    <!-- Post-processing: Scale outputs back to original 640x480 -->
+    <param name="postprocessing/scale_to_original" value="true"/>
+    <param name="postprocessing/original_width" value="640"/>
+    <param name="postprocessing/original_height" value="480"/>
 
     <!-- Visualization Parameters -->
     <param name="visualization/left_lane_color_r" value="0"/>
@@ -57,12 +90,19 @@
     <param name="visualization/center_lane_color_r" value="255"/>
     <param name="visualization/center_lane_color_g" value="255"/>
     <param name="visualization/center_lane_color_b" value="0"/>
+    
+    <!-- Topic remapping -->
+    <remap from="lane_mask" to="$(arg output_prefix)lane_mask"/>
+    <remap from="lane_boundaries" to="$(arg output_prefix)lane_boundaries"/>
+    <remap from="image_with_lanes" to="$(arg output_prefix)image_with_lanes"/>
+    <remap from="lane_coefficients" to="$(arg output_prefix)lane_coefficients"/>
+    <remap from="debug_image" to="$(arg output_prefix)debug_image"/>
   </node>
 
   <!-- Optional: Launch RViz for visualization -->
   <group if="$(arg enable_debug)">
     <node name="rviz_lane_detection" pkg="rviz" type="rviz"
-          args="-d $(find LidarProjectionLane)/config/rviz/lane_detection.rviz"
+          args="-d $(find lane_fusion)/config/rviz/lane_detection.rviz"
           required="false"/>
   </group>
 
