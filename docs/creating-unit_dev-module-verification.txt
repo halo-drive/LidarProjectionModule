@@ -1,0 +1,63 @@
+run the script make_unit_ws.sh
+
+gitignore already has this ::
+# per-module dev workspaces
+.unit_dev/
+
+
+Inner-loop workflow for a module (e.g. lidar_processing)
+Edit code and Work inside the real folder:
+eg:
+LidarProjectionLane/lidar_processing/...
+
+-------Quick compile check--------
+
+cd LidarProjectionLane/lidar_processing
+mkdir -p build && cd build
+cmake ..          # < 1 s
+make -j           # catches C++ / CUDA errors quickly
+
+Use this when you just changed a couple of lines and want a very fast
+feedback (no ROS, no catkin).
+-----ROS-aware build + run----------
+
+# open / stay in the same terminal
+
+source /opt/ros/noetic/setup.bash         # ROS env
+source setup_environment_script.sh        # CUDA / TensorRT vars
+
+cd LidarProjectionLane/.unit_dev/lidar_processing_ws
+catkin_make -DCMAKE_BUILD_TYPE=RelWithDebInfo  # full ROS build of ONE pkg
+source devel/setup.bash                         # overlays ROS_PACKAGE_PATH
+
+# now run or launch
+rosrun  lidar_processing  lidar_processing_node
+# or
+roslaunch lidar_processing test_ground_extraction.launch
+
+catkin_make here only touches the single workspace, so it’s usually < 10 s.
+4 Iterate
+
+    edit → step 2 (quick make)
+    → if that succeeds → step 3 (catkin_make + run)
+
+    repeat until the node behaves
+
+2 Switching modules
+
+Just change to the other workspace:
+
+cd LidarProjectionLane/.unit_dev/camera_stitching_ws
+catkin_make                   # builds camera_stitching only
+source devel/setup.bash       # (this overrides the previous overlay)
+rosrun camera_stitching camera_stitching_node
+
+3 Returning to the umbrella build
+
+# new terminal (or 'unset ROS_PACKAGE_PATH')
+source /opt/ros/noetic/setup.bash
+source setup_environment_script.sh
+cd ~/ws_LPM                      # your full workspace
+catkin_make                      # big build
+source devel/setup.bash
+roslaunch lane_fusion sensors.launch ...

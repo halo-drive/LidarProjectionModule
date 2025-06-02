@@ -2,6 +2,28 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0074 NEW)              # allow CUDA_ROOT / TensorRT root hints
 
 project(lane_detection VERSION 1.0.0 LANGUAGES CXX CUDA)
+set(MODULE_NAME ${PROJECT_NAME})
+
+# -----------------------------------------------------------------------------
+# Detect build context
+#   • STANDALONE_BUILD = ON  → user forced it
+#   • building under catkin?  (CATKIN_TOPLEVEL is defined only in catkin workspaces)
+# -----------------------------------------------------------------------------
+if(NOT DEFINED STANDALONE_BUILD)
+    if(DEFINED CATKIN_TOPLEVEL)         # we are *inside* a catkin workspace
+        set(STANDALONE_BUILD TRUE)        # treat as stand-alone package
+    else()
+        # integrated if called from umbrella project
+        set(STANDALONE_BUILD FALSE)
+    endif()
+endif()
+if(STANDALONE_BUILD)
+    project(${MODULE_NAME})
+else()
+    message(STATUS "Building ${MODULE_NAME} as part of umbrella project")
+endif()
+
+
 
 # ───────────────────────────── Options ────────────────────────────────
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
