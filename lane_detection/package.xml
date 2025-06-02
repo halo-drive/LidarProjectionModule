@@ -1,0 +1,24 @@
+<?xml version="2.0"?>
+<package format="2">
+    <name>lane_detection</name>
+    <version>1.0.0</version>
+    <description>Real-time lane-detection library and ROS node (CUDA + TensorRT).</description>
+
+    <maintainer email="ashwin@drivehalo">ashwin nanda</maintainer>
+    <license>BSD</license>
+
+    <!-- Build system -->
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <!-- Build + exec dependencies -->
+    <depend>roscpp</depend>
+    <depend>cv_bridge</depend>
+    <depend>sensor_msgs</depend>
+    <depend>std_msgs</depend>
+
+    <!-- Optional – helps rosdep install OpenCV & Boost -->
+    <exec_depend>opencv4</exec_depend>
+    <exec_depend>libboost-system-dev</exec_depend>
+    <exec_depend>libboost-filesystem-dev</exec_depend>
+    <exec_depend>libboost-thread-dev</exec_depend>
+</package>

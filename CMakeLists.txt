@@ -273,7 +273,7 @@ set_target_properties(integrated_lane_fusion_node PROPERTIES
 
 # Standalone ground extraction node (from LiDAR module)
 add_executable(lidar_ground_extraction_node
-        lidar_processing/src/lidar_ground_extraction_node.cpp
+        lidar_processing/ros/src/lidar_ground_extraction_node.cpp
 )
 
 target_link_libraries(lidar_ground_extraction_node
@@ -293,7 +293,7 @@ endif()
 # Lane detection node (conditional on TensorRT)
 if(TENSORRT_FOUND)
     add_executable(lane_detection_node
-            lane_detection/src/lane_detection_node.cpp
+            lane_detection/ros/src/lane_detection_node.cpp
     )
 
     target_link_libraries(lane_detection_node
@@ -332,7 +332,7 @@ endif()
 
 # Sensor fusion node
 add_executable(sensor_fusion_node
-        fusion/src/lane_fusion_node.cpp
+        fusion/ros/src/lane_fusion_node.cpp
 )
 
 target_link_libraries(sensor_fusion_node

@@ -1,0 +1,23 @@
+<?xml version="2.0"?>
+<package format="2">
+    <name>camera_stitching</name>
+    <version>1.0.0</version>
+    <description>Camera stitching library and ROS node.</description>
+
+    <maintainer email="ashwin@drivehalo.com">ashwin nanda</maintainer>
+    <license>BSD</license>
+
+    <!-- Build system -->
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <!-- Build + run dependencies -->
+    <depend>roscpp</depend>
+    <depend>sensor_msgs</depend>
+    <depend>cv_bridge</depend>
+    <depend>std_msgs</depend>
+
+    <!-- Optional: declare OpenCV / Boost so rosdep can install them -->
+    <exec_depend>opencv4</exec_depend>
+    <exec_depend>libboost-system-dev</exec_depend>
+    <exec_depend>libboost-thread-dev</exec_depend>
+</package>

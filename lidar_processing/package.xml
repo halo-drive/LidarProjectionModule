@@ -1,0 +1,21 @@
+<?xml version="2.0"?>
+<package format="2">
+    <name>lidar_processing</name>
+    <version>1.0.0</version>
+    <description>LiDAR point-cloud processing library and ROS node.</description>
+
+    <maintainer email="atharv.sharma@pomorobtics.com">atharv sharma</maintainer>
+    <license>BSD</license>
+
+    <!-- build system -->
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <!-- build + exec deps -->
+    <depend>roscpp</depend>
+    <depend>pcl_ros</depend>
+    <depend>pcl_conversions</depend>
+    <depend>sensor_msgs</depend>
+
+    <!-- You might add cuda-toolkit, libpcl-dev, libeigen3-dev, etc., to
+         <exec_depend> if you rely on rosdep for those. -->
+</package>
