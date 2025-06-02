@@ -139,7 +139,7 @@ install(TARGETS
         lane_detection_node
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin)
+        RUNTIME  DESTINATION lib/${PROJECT_NAME})
 
 if (catkin_FOUND)
     catkin_package(

@@ -97,7 +97,7 @@ target_link_libraries(camera_stitching_node camera_stitching)
 install(TARGETS camera_stitching camera_stitching_node
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin)
+        RUNTIME  DESTINATION lib/${PROJECT_NAME})
 
 #
 # ─── Catkin package metadata (ignored in stand-alone mode) ────────────

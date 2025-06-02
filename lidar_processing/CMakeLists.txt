@@ -104,7 +104,7 @@ target_link_libraries(lidar_processing_node
 install(TARGETS lidar_processing lidar_processing_node
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin)
+        RUNTIME  DESTINATION lib/${PROJECT_NAME})
 
 # ─────────────────────────── catkin export ────────────────────────────
 if (catkin_FOUND)

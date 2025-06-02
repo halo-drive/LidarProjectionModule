@@ -93,7 +93,7 @@ install(TARGETS
         sensor_fusion_cuda_kernels
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin)
+        RUNTIME  DESTINATION lib/${PROJECT_NAME})
 
 # ───────────── catkin export (ignored stand-alone) ─────────────
 if(catkin_FOUND)
