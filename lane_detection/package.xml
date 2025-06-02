@@ -4,7 +4,7 @@
     <version>1.0.0</version>
     <description>Real-time lane-detection library and ROS node (CUDA + TensorRT).</description>
 
-    <maintainer email="ashwin@drivehalo">ashwin nanda</maintainer>
+    <maintainer email="ashwin@drivehalo.com">ashwin nanda</maintainer>
     <license>BSD</license>
 
     <!-- Build system -->
