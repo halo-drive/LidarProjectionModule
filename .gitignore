@@ -32,7 +32,6 @@ cmake-build-debug
 *.swp
 *~
 *.bak
-.unit_dev/
 
 # Python
 __pycache__/

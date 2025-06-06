@@ -57,7 +57,12 @@ rosrun camera_stitching camera_stitching_node
 # new terminal (or 'unset ROS_PACKAGE_PATH')
 source /opt/ros/noetic/setup.bash
 source setup_environment_script.sh
-cd ~/ws_LPM                      # your full workspace
+cd ~/ws_LPM                      # full workspace
 catkin_make                      # big build
 source devel/setup.bash
 roslaunch lane_fusion sensors.launch ...
+
+
+mkdir -p /workspace/ws_LPM/src/LidarProjectionLane/.unit_dev/fusion_ws/devel/lib/fusion
+ln -sf ../../../build/fusion/sensor_fusion_node \
+    /workspace/ws_LPM/src/LidarProjectionLane/.unit_dev/fusion_ws/devel/lib/fusion/sensor_fusion_node

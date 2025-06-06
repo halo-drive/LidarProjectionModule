@@ -8,11 +8,10 @@ set(MODULE_NAME ${PROJECT_NAME})
 #   • building under catkin?  (CATKIN_TOPLEVEL is defined only in catkin workspaces)
 # -----------------------------------------------------------------------------
 if(NOT DEFINED STANDALONE_BUILD)
-    if(DEFINED CATKIN_TOPLEVEL)         # we are *inside* a catkin workspace
-        set(STANDALONE_BUILD TRUE)        # treat as stand-alone package
-    else()
-        # integrated if called from umbrella project
+    if(DEFINED CATKIN_TOPLEVEL)
         set(STANDALONE_BUILD FALSE)
+    else()
+        set(STANDALONE_BUILD TRUE)
     endif()
 endif()
 
@@ -99,13 +98,6 @@ target_link_libraries(lidar_processing_node
         ${ROS_LIBRARIES}
         ${PCL_LIBRARIES}
 )
-
-# ─────────────────────────── Installation  ────────────────────────────
-install(TARGETS lidar_processing lidar_processing_node
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib
-        RUNTIME  DESTINATION lib/${PROJECT_NAME})
-
 # ─────────────────────────── catkin export ────────────────────────────
 if (catkin_FOUND)
     catkin_package(
@@ -114,4 +106,17 @@ if (catkin_FOUND)
             CATKIN_DEPENDS roscpp pcl_ros pcl_conversions sensor_msgs
             DEPENDS PCL Boost
     )
+endif()
+
+# ─────────────────────────── Installation  ────────────────────────────
+install(TARGETS lidar_processing lidar_processing_node
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME  DESTINATION lib/${PROJECT_NAME})
+
+if(catkin_FOUND)
+    install(TARGETS lidar_processing_node
+            RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+    install(TARGETS lidar_processing
+            LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 endif()
