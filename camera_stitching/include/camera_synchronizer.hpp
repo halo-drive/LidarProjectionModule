@@ -17,9 +17,10 @@
 #include <chrono>
 #include <deque>
 #include <mutex>
+#include <optional>
 
-#include "utils/time_sync.hpp"
-#include "utils/memory_management.hpp"
+// Forward declarations
+class SimplePerformanceTimer;
 
 namespace camera_stitching {
 
@@ -212,7 +213,7 @@ private:
     std::mutex state_mutex_;
 
     // Performance monitoring
-    std::unique_ptr<utils::PerformanceTimer> sync_timer_;
+    std::unique_ptr<SimplePerformanceTimer> sync_timer_;
     std::chrono::time_point<std::chrono::high_resolution_clock> last_stats_update_;
 
     /**

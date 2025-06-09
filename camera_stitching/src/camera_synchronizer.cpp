@@ -4,6 +4,26 @@
 #include <algorithm>
 #include <numeric>
 
+// Simple performance timer implementation
+class SimplePerformanceTimer {
+public:
+    void start(const std::string& operation) {
+        start_times_[operation] = std::chrono::high_resolution_clock::now();
+    }
+
+    void end(const std::string& operation) {
+        auto it = start_times_.find(operation);
+        if (it != start_times_.end()) {
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::high_resolution_clock::now() - it->second).count();
+            // Store timing data if needed
+        }
+    }
+
+private:
+    std::map<std::string, std::chrono::high_resolution_clock::time_point> start_times_;
+};
+
 namespace camera_stitching {
 
 CameraSynchronizer::CameraSynchronizer(const SynchronizationConfig& config)
@@ -34,7 +54,7 @@ bool CameraSynchronizer::initialize() {
 
     try {
         // Initialize performance timer
-        sync_timer_ = std::make_unique<utils::PerformanceTimer>();
+        sync_timer_ = std::make_unique<SimplePerformanceTimer>();
 
         // Create message filter subscribers
         left_image_sub_ = std::make_unique<message_filters::Subscriber<sensor_msgs::Image>>(

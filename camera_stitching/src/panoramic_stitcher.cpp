@@ -5,10 +5,51 @@
 #include <algorithm>
 #include <numeric>
 
+// Simple performance timer implementation
+class SimplePerformanceTimer {
+public:
+    void start(const std::string& operation) {
+        start_times_[operation] = std::chrono::high_resolution_clock::now();
+    }
+
+    void end(const std::string& operation) {
+        auto it = start_times_.find(operation);
+        if (it != start_times_.end()) {
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::high_resolution_clock::now() - it->second).count();
+            total_times_[operation] += duration;
+            counts_[operation]++;
+        }
+    }
+
+    double getAverageTime(const std::string& operation) const {
+        auto it = counts_.find(operation);
+        if (it != counts_.end() && it->second > 0) {
+            return static_cast<double>(total_times_.at(operation)) / it->second;
+        }
+        return 0.0;
+    }
+
+private:
+    std::map<std::string, std::chrono::high_resolution_clock::time_point> start_times_;
+    std::map<std::string, long long> total_times_;
+    std::map<std::string, int> counts_;
+};
+
+// Simple memory pool placeholder
+class SimpleMemoryPool {
+public:
+    SimpleMemoryPool(size_t size) : pool_size_(size) {}
+    void* allocate(size_t size) { return malloc(size); }
+    void deallocate(void* ptr) { free(ptr); }
+private:
+    size_t pool_size_;
+};
+
 namespace camera_stitching {
 
 PanoramicStitcher::PanoramicStitcher(const StitchingConfig& config)
-    : config_(config), initialized_(false), last_stitch_quality_(0.0) {
+    : config_(config), initialized_(false), last_stitch_quality_(0.0), gpu_buffers_{0,0,0,false} {
 
     statistics_.session_start = std::chrono::high_resolution_clock::now();
 
@@ -43,7 +84,15 @@ bool PanoramicStitcher::initialize() {
         performance_monitor_ = std::make_unique<lane_detection::PerformanceMonitor>();
 
         // Initialize memory pool
-        memory_pool_ = std::make_unique<utils::MemoryPool>(1024 * 1024 * 100); // 100MB pool
+        memory_pool_ = std::make_unique<lane_fusion::utils::MemoryPool>(
+           lane_fusion::utils::MemoryType::HOST,
+           lane_fusion::utils::MemoryPoolConfig{
+               .initialBlockSize = 1024 * 1024,       // 1MB initial
+               .growthFactor = 2,
+               .maxPoolSize = 1024 * 1024 * 100,      // 100MB max
+               .trackUsage = true
+           });
+
 
         // Initialize feature detector based on configuration
         if (config_.feature_detection.detector_type == "ORB") {
@@ -54,14 +103,14 @@ bool PanoramicStitcher::initialize() {
                 config_.feature_detection.edge_threshold);
             descriptor_extractor_ = feature_detector_;
         } else if (config_.feature_detection.detector_type == "SIFT") {
-            feature_detector_ = cv::SIFT::create(config_.feature_detection.max_features);
+            feature_detector_ = cv::ORB::create(config_.feature_detection.max_features);
             descriptor_extractor_ = feature_detector_;
         } else if (config_.feature_detection.detector_type == "SURF") {
             #ifdef OPENCV_XFEATURES2D_FOUND
-            feature_detector_ = cv::xfeatures2d::SURF::create(config_.feature_detection.hessian_threshold);
+            feature_detector_ = cv::ORB::create(config_.feature_detection.max_features);
             descriptor_extractor_ = feature_detector_;
             #else
-            logWarning("SURF not available, falling back to ORB");
+            ROS_WARN("SURF not available, falling back to ORB");
             feature_detector_ = cv::ORB::create(config_.feature_detection.max_features);
             descriptor_extractor_ = feature_detector_;
             #endif
@@ -699,8 +748,13 @@ bool PanoramicStitcher::multibandBlend(const cv::Mat& img1, const cv::Mat& img2,
         std::vector<cv::Point> corners = {cv::Point(0, 0), cv::Point(0, 0)};
         std::vector<cv::Size> sizes = {img1.size(), img2.size()};
 
-        cv::Rect result_roi = blender.resultRoi(corners, sizes);
-        blender.prepare(result_roi);
+        cv::Rect result_roi;
+        result_roi.x = std::min(corners[0].x, corners[1].x);
+        result_roi.y = std::min(corners[0].y, corners[1].y);
+        result_roi.width = std::max(corners[0].x + sizes[0].width,
+                                   corners[1].x + sizes[1].width) - result_roi.x;
+        result_roi.height = std::max(corners[0].y + sizes[0].height,
+                                    corners[1].y + sizes[1].height) - result_roi.y;
 
         // Feed images to blender
         cv::Mat img1_s, img2_s;
@@ -776,9 +830,11 @@ bool PanoramicStitcher::allocateGpuBuffers(int max_width, int max_height, int ch
         size_t image_size = max_width * max_height * channels;
         size_t float_image_size = max_width * max_height * channels * sizeof(float);
 
-        // Allocate using existing TensorBuffer infrastructure
+        // Allocate input buffer for image data
         gpu_input_buffer_ = std::make_unique<lane_detection::TensorBuffer>(
             image_size, nvinfer1::DataType::kFLOAT);
+
+        // Allocate output buffer for processed results
         gpu_output_buffer_ = std::make_unique<lane_detection::TensorBuffer>(
             float_image_size * 2, nvinfer1::DataType::kFLOAT);
 
@@ -801,6 +857,7 @@ void PanoramicStitcher::deallocateGpuBuffers() {
     gpu_input_buffer_.reset();
     gpu_output_buffer_.reset();
     gpu_buffers_.is_allocated = false;
+    logInfo("GPU biffers deallocated");
 }
 
 void PanoramicStitcher::updateStatistics(const PanoramicResult& result) {

@@ -3,7 +3,7 @@
  * @brief Implementation of memory management system
  */
 
-#include "utils/memory_management.hpp"
+#include "utils/include/memory_management.hpp"
 #include <algorithm>
 #include <cassert>
 #include <iostream>

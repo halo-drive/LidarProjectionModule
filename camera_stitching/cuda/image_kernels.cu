@@ -3,10 +3,12 @@
 #include <device_launch_parameters.h>
 #include <curand_kernel.h>
 #include <cuda_runtime_api.h>
-#include <cub/cub.cuh>
 
 #include <cfloat>
 #include <cmath>
+
+// Type definitions for compatibility
+typedef unsigned char uchar;
 
 namespace camera_stitching {
 
@@ -20,40 +22,40 @@ namespace camera_stitching {
 // Device utility functions
 __device__ __forceinline__ float bilinearInterpolation(
     const uint8_t* image, float x, float y, int width, int height, int channels, int channel) {
-    
+
     int x0 = __float2int_rd(x);
     int y0 = __float2int_rd(y);
     int x1 = min(x0 + 1, width - 1);
     int y1 = min(y0 + 1, height - 1);
-    
+
     float dx = x - x0;
     float dy = y - y0;
-    
+
     // Ensure bounds
     x0 = max(0, min(x0, width - 1));
     y0 = max(0, min(y0, height - 1));
     x1 = max(0, min(x1, width - 1));
     y1 = max(0, min(y1, height - 1));
-    
+
     int idx00 = (y0 * width + x0) * channels + channel;
     int idx01 = (y0 * width + x1) * channels + channel;
     int idx10 = (y1 * width + x0) * channels + channel;
     int idx11 = (y1 * width + x1) * channels + channel;
-    
+
     float val00 = image[idx00];
     float val01 = image[idx01];
     float val10 = image[idx10];
     float val11 = image[idx11];
-    
+
     float val0 = val00 * (1.0f - dx) + val01 * dx;
     float val1 = val10 * (1.0f - dx) + val11 * dx;
-    
+
     return val0 * (1.0f - dy) + val1 * dy;
 }
 
 __device__ __forceinline__ void applyHomographyTransform(
     float x, float y, const float* homography, float& out_x, float& out_y) {
-    
+
     float w = homography[6] * x + homography[7] * y + homography[8];
     if (fabsf(w) > 1e-7f) {
         out_x = (homography[0] * x + homography[1] * y + homography[2]) / w;
@@ -77,48 +79,48 @@ __global__ void undistortImageKernel(
     const uint8_t* d_input, uint8_t* d_output,
     const float* d_camera_matrix, const float* d_dist_coeffs,
     int width, int height) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x >= width || y >= height) return;
-    
+
     // Camera matrix elements
     float fx = d_camera_matrix[0];
     float fy = d_camera_matrix[4];
     float cx = d_camera_matrix[2];
     float cy = d_camera_matrix[5];
-    
+
     // Distortion coefficients (assuming 5 coefficients: k1, k2, p1, p2, k3)
     float k1 = d_dist_coeffs[0];
     float k2 = d_dist_coeffs[1];
     float p1 = d_dist_coeffs[2];
     float p2 = d_dist_coeffs[3];
     float k3 = (d_dist_coeffs != nullptr) ? d_dist_coeffs[4] : 0.0f;
-    
+
     // Normalize coordinates
     float x_norm = (x - cx) / fx;
     float y_norm = (y - cy) / fy;
-    
+
     // Calculate radial distance
     float r2 = x_norm * x_norm + y_norm * y_norm;
     float r4 = r2 * r2;
     float r6 = r4 * r2;
-    
+
     // Radial distortion correction
     float radial_factor = 1.0f + k1 * r2 + k2 * r4 + k3 * r6;
-    
+
     // Tangential distortion correction
     float x_corrected = x_norm * radial_factor + 2.0f * p1 * x_norm * y_norm + p2 * (r2 + 2.0f * x_norm * x_norm);
     float y_corrected = y_norm * radial_factor + p1 * (r2 + 2.0f * y_norm * y_norm) + 2.0f * p2 * x_norm * y_norm;
-    
+
     // Convert back to pixel coordinates
     float src_x = x_corrected * fx + cx;
     float src_y = y_corrected * fy + cy;
-    
+
     // Bilinear interpolation for 3-channel image
     int dst_idx = (y * width + x) * 3;
-    
+
     if (src_x >= 0 && src_x < width - 1 && src_y >= 0 && src_y < height - 1) {
         for (int c = 0; c < 3; ++c) {
             d_output[dst_idx + c] = static_cast<uint8_t>(
@@ -135,20 +137,20 @@ __global__ void undistortImageKernel(
 __global__ void bgrToGrayscaleKernel(
     const uint8_t* d_input, uint8_t* d_output,
     int width, int height, float sigma) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x >= width || y >= height) return;
-    
+
     int input_idx = (y * width + x) * 3;
     int output_idx = y * width + x;
-    
+
     // BGR to grayscale conversion (OpenCV weights)
     float gray = 0.114f * d_input[input_idx] +     // Blue
-                 0.587f * d_input[input_idx + 1] + // Green  
+                 0.587f * d_input[input_idx + 1] + // Green
                  0.299f * d_input[input_idx + 2];  // Red
-    
+
     d_output[output_idx] = static_cast<uint8_t>(fminf(255.0f, fmaxf(0.0f, gray)));
 }
 
@@ -157,17 +159,17 @@ __global__ void harrisCornerDetectionKernel(
     const uint8_t* d_image, float* d_corners, float2* d_keypoints,
     int* d_keypoint_count, int width, int height, float threshold,
     int max_keypoints) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x < 2 || x >= width - 2 || y < 2 || y >= height - 2) return;
-    
+
     int idx = y * width + x;
-    
+
     // Calculate gradients using Sobel operators
     float Ix = 0, Iy = 0;
-    
+
     // Sobel X gradient
     Ix += -1 * d_image[(y-1) * width + (x-1)];
     Ix += -2 * d_image[y * width + (x-1)];
@@ -175,7 +177,7 @@ __global__ void harrisCornerDetectionKernel(
     Ix += 1 * d_image[(y-1) * width + (x+1)];
     Ix += 2 * d_image[y * width + (x+1)];
     Ix += 1 * d_image[(y+1) * width + (x+1)];
-    
+
     // Sobel Y gradient
     Iy += -1 * d_image[(y-1) * width + (x-1)];
     Iy += -2 * d_image[(y-1) * width + x];
@@ -183,24 +185,24 @@ __global__ void harrisCornerDetectionKernel(
     Iy += 1 * d_image[(y+1) * width + (x-1)];
     Iy += 2 * d_image[(y+1) * width + x];
     Iy += 1 * d_image[(y+1) * width + (x+1)];
-    
+
     // Structure tensor components
     float Ixx = Ix * Ix;
     float Iyy = Iy * Iy;
     float Ixy = Ix * Iy;
-    
+
     // Harris corner response
     float k = 0.04f;
     float det = Ixx * Iyy - Ixy * Ixy;
     float trace = Ixx + Iyy;
     float harris_response = det - k * trace * trace;
-    
+
     d_corners[idx] = harris_response;
-    
+
     // Non-maximum suppression and keypoint extraction
     if (harris_response > threshold) {
         bool is_local_max = true;
-        
+
         // Check 3x3 neighborhood
         for (int dy = -1; dy <= 1 && is_local_max; ++dy) {
             for (int dx = -1; dx <= 1 && is_local_max; ++dx) {
@@ -211,7 +213,7 @@ __global__ void harrisCornerDetectionKernel(
                 }
             }
         }
-        
+
         if (is_local_max) {
             int keypoint_idx = atomicAdd(d_keypoint_count, 1);
             if (keypoint_idx < max_keypoints) {
@@ -225,35 +227,35 @@ __global__ void orbFeatureDetectionKernel(
     const uint8_t* d_image, float2* d_keypoints, uint8_t* d_descriptors,
     int* d_keypoint_count, int width, int height, int max_features,
     float scale_factor, int n_levels, int edge_threshold) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
-    if (x < edge_threshold || x >= width - edge_threshold || 
+
+    if (x < edge_threshold || x >= width - edge_threshold ||
         y < edge_threshold || y >= height - edge_threshold) return;
-    
+
     // FAST corner detection (simplified)
     int idx = y * width + x;
     uint8_t center_intensity = d_image[idx];
     int threshold = 50; // FAST threshold
-    
+
     // Check FAST circle pattern (16 points)
     int circle_offsets[16][2] = {
         {0, -3}, {1, -3}, {2, -2}, {3, -1}, {3, 0}, {3, 1}, {2, 2}, {1, 3},
         {0, 3}, {-1, 3}, {-2, 2}, {-3, 1}, {-3, 0}, {-3, -1}, {-2, -2}, {-1, -3}
     };
-    
+
     int consecutive_brighter = 0;
     int consecutive_darker = 0;
     int max_consecutive = 0;
-    
+
     for (int i = 0; i < 16; ++i) {
         int px = x + circle_offsets[i][0];
         int py = y + circle_offsets[i][1];
-        
+
         if (px >= 0 && px < width && py >= 0 && py < height) {
             uint8_t pixel_intensity = d_image[py * width + px];
-            
+
             if (pixel_intensity > center_intensity + threshold) {
                 consecutive_brighter++;
                 consecutive_darker = 0;
@@ -264,47 +266,47 @@ __global__ void orbFeatureDetectionKernel(
                 consecutive_brighter = 0;
                 consecutive_darker = 0;
             }
-            
+
             max_consecutive = max(max_consecutive, max(consecutive_brighter, consecutive_darker));
         }
     }
-    
+
     // If we have 9 or more consecutive pixels above/below threshold, it's a corner
     if (max_consecutive >= 9) {
         int keypoint_idx = atomicAdd(d_keypoint_count, 1);
         if (keypoint_idx < max_features) {
             d_keypoints[keypoint_idx] = make_float2(x, y);
-            
+
             // Simplified ORB descriptor computation
             uint8_t* descriptor = &d_descriptors[keypoint_idx * ORB_DESCRIPTOR_SIZE];
-            
+
             // Initialize descriptor to zero
             for (int i = 0; i < ORB_DESCRIPTOR_SIZE; ++i) {
                 descriptor[i] = 0;
             }
-            
+
             // Simplified binary pattern (production version would use rotated BRIEF)
             int pattern_size = 8;
             for (int i = 0; i < ORB_DESCRIPTOR_SIZE * 8 && i < pattern_size * pattern_size; ++i) {
                 int bit_idx = i % 8;
                 int byte_idx = i / 8;
-                
+
                 int dx1 = (i % pattern_size) - pattern_size/2;
                 int dy1 = (i / pattern_size) - pattern_size/2;
                 int dx2 = ((i + pattern_size/2) % pattern_size) - pattern_size/2;
                 int dy2 = ((i + pattern_size/2) / pattern_size) - pattern_size/2;
-                
+
                 int px1 = x + dx1;
                 int py1 = y + dy1;
                 int px2 = x + dx2;
                 int py2 = y + dy2;
-                
+
                 if (px1 >= 0 && px1 < width && py1 >= 0 && py1 < height &&
                     px2 >= 0 && px2 < width && py2 >= 0 && py2 < height) {
-                    
+
                     uint8_t val1 = d_image[py1 * width + px1];
                     uint8_t val2 = d_image[py2 * width + px2];
-                    
+
                     if (val1 > val2) {
                         descriptor[byte_idx] |= (1 << bit_idx);
                     }
@@ -320,39 +322,36 @@ __global__ void bruteForceMatchingKernel(
     int2* d_matches, float* d_distances, int* d_match_count,
     int desc_count1, int desc_count2, int desc_length,
     float ratio_threshold) {
-    
+
     int query_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (query_idx >= desc_count1) return;
-    
+
     const uint8_t* query_desc = &d_descriptors1[query_idx * desc_length];
-    
+
     int best_match_idx = -1;
-    int second_best_match_idx = -1;
     int best_distance = INT_MAX;
     int second_best_distance = INT_MAX;
-    
+
     // Find best and second-best matches
     for (int train_idx = 0; train_idx < desc_count2; ++train_idx) {
         const uint8_t* train_desc = &d_descriptors2[train_idx * desc_length];
-        
+
         int distance = hammingDistance(query_desc, train_desc, desc_length);
-        
+
         if (distance < best_distance) {
             second_best_distance = best_distance;
-            second_best_match_idx = best_match_idx;
             best_distance = distance;
             best_match_idx = train_idx;
         } else if (distance < second_best_distance) {
             second_best_distance = distance;
-            second_best_match_idx = train_idx;
         }
     }
-    
+
     // Apply Lowe's ratio test
     if (best_match_idx >= 0 && second_best_distance > 0) {
         float ratio = static_cast<float>(best_distance) / static_cast<float>(second_best_distance);
-        
+
         if (ratio < ratio_threshold) {
             int match_idx = atomicAdd(d_match_count, 1);
             d_matches[match_idx] = make_int2(query_idx, best_match_idx);
@@ -367,18 +366,18 @@ __global__ void perspectiveWarpKernel(
     const float* d_homography, int input_width, int input_height,
     int output_width, int output_height, int channels,
     int interpolation_mode) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x >= output_width || y >= output_height) return;
-    
+
     // Apply inverse homography to find source coordinates
     float src_x, src_y;
     applyHomographyTransform(static_cast<float>(x), static_cast<float>(y), d_homography, src_x, src_y);
-    
+
     int output_idx = (y * output_width + x) * channels;
-    
+
     // Check bounds
     if (src_x >= 0 && src_x < input_width - 1 && src_y >= 0 && src_y < input_height - 1) {
         for (int c = 0; c < channels; ++c) {
@@ -403,17 +402,17 @@ __global__ void perspectiveWarpKernel(
 __global__ void generateWarpMapKernel(
     float* d_warp_map_x, float* d_warp_map_y,
     const float* d_homography, int width, int height) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x >= width || y >= height) return;
-    
+
     int idx = y * width + x;
-    
+
     float src_x, src_y;
     applyHomographyTransform(static_cast<float>(x), static_cast<float>(y), d_homography, src_x, src_y);
-    
+
     d_warp_map_x[idx] = src_x;
     d_warp_map_y[idx] = src_y;
 }
@@ -423,18 +422,18 @@ __global__ void linearBlendingKernel(
     const uint8_t* d_img1, const uint8_t* d_img2,
     const float* d_weights, uint8_t* d_result,
     int width, int height, int channels) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x >= width || y >= height) return;
-    
+
     int idx = y * width + x;
     int pixel_idx = idx * channels;
-    
+
     float weight = d_weights[idx];
     float inv_weight = 1.0f - weight;
-    
+
     for (int c = 0; c < channels; ++c) {
         float blended = weight * d_img1[pixel_idx + c] + inv_weight * d_img2[pixel_idx + c];
         d_result[pixel_idx + c] = static_cast<uint8_t>(fminf(255.0f, fmaxf(0.0f, blended)));
@@ -446,23 +445,23 @@ __global__ void multibandBlendingKernel(
     const float* d_weights1, const float* d_weights2,
     uint8_t* d_result, int width, int height, int channels,
     int num_bands, float blend_strength) {
-    
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    
+
     if (x >= width || y >= height) return;
-    
+
     int idx = y * width + x;
     int pixel_idx = idx * channels;
-    
+
     float weight1 = d_weights1[idx];
     float weight2 = d_weights2[idx];
     float total_weight = weight1 + weight2;
-    
+
     if (total_weight > 0.0f) {
         weight1 /= total_weight;
         weight2 /= total_weight;
-        
+
         for (int c = 0; c < channels; ++c) {
             float blended = weight1 * d_img1[pixel_idx + c] + weight2 * d_img2[pixel_idx + c];
             d_result[pixel_idx + c] = static_cast<uint8_t>(fminf(255.0f, fmaxf(0.0f, blended)));
@@ -480,20 +479,14 @@ __global__ void homographyRansacKernel(
     float* d_homography, uchar* d_inlier_mask,
     int point_count, float threshold, float confidence,
     int max_iterations, int* d_inlier_count) {
-    
+
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (tid >= max_iterations) return;
-    
+
     // Initialize random state
     curandState state;
     curand_init(tid, 0, 0, &state);
-    
-    // Randomly select 4 points for homography estimation
-    int selected_indices[4];
-    for (int i = 0; i < 4; ++i) {
-        selected_indices[i] = curand(&state) % point_count;
-    }
     
     // Create local homography matrix
     float local_homography[9];

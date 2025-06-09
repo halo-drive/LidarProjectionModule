@@ -22,7 +22,7 @@ endif()
 #
 option(BUILD_SHARED_LIBS "Build shared (.so) instead of static" ON)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #
@@ -47,7 +47,7 @@ else()
 endif()
 
 # 2. OpenCV, Boost, CUDA (optional)
-find_package(OpenCV  REQUIRED COMPONENTS core imgproc calib3d imgcodecs highgui)
+find_package(OpenCV  REQUIRED COMPONENTS core imgproc calib3d imgcodecs highgui features2d)
 find_package(Boost   REQUIRED COMPONENTS system thread)
 find_package(CUDA QUIET)
 if (CUDA_FOUND)
@@ -55,6 +55,7 @@ if (CUDA_FOUND)
     if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         set(CMAKE_CUDA_ARCHITECTURES 72 75 87)
     endif()
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++17")
 endif()
 
 include_directories(
@@ -62,6 +63,11 @@ include_directories(
         ${OpenCV_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+
+        # Cross-module dependencies
+        ${CMAKE_CURRENT_SOURCE_DIR}/../utils/include          # For utils/memory_management.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../lane_detection/include # For tensor_utils.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../calibration/include    # For calibration/camera_calibrator.hpp
 )
 
 #
@@ -84,7 +90,12 @@ target_link_libraries(camera_stitching
         Boost::system Boost::thread
         ${CUDA_LIBRARIES}
 )
-
+# Add CUDA support if available
+if (CUDA_FOUND)
+    target_include_directories(camera_stitching PRIVATE ${CUDA_INCLUDE_DIRS})
+    target_link_libraries(camera_stitching ${CUDA_LIBRARIES})
+    target_compile_definitions(camera_stitching PRIVATE CUDA_FOUND)
+endif()
 #
 # ─── Node executable  ─────────────────────────────────────────────────
 #

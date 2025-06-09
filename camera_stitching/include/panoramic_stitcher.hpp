@@ -3,9 +3,9 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>
-#include <opencv2/xfeatures2d.hpp>
-#include <opencv2/calib3d.hpp>
+#include <opencv2/stitching.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 #include <memory>
 #include <vector>
@@ -13,11 +13,10 @@
 #include <mutex>
 #include <cuda_runtime.h>
 
+#include "../../calibration/include/camera_calibrator.hpp"
 #include "camera_synchronizer.hpp"
-#include "calibration/camera_calibrator.hpp"
-#include "calibration/extrinsic_calibrator.hpp"
-#include "tensor_utils.hpp"
-#include "utils/memory_management.hpp"
+#include "../../utils/include/memory_management.hpp"
+#include "../../lane_detection/include/tensor_utils.hpp"
 
 namespace camera_stitching {
 
@@ -47,7 +46,7 @@ struct FeatureMatchResult {
 };
 
 /**
- * @brief Panoramic image result with metadata and quality metrics
+ * @brief Panoramic image with metadata and quality metrics
  */
 struct PanoramicResult {
     cv::Mat panoramic_image;                      // Final stitched panoramic image
@@ -168,54 +167,7 @@ struct StitchingStatistics {
 };
 
 /**
- * @brief GPU memory buffers for CUDA-accelerated stitching
- */
-struct StitchingGpuBuffers {
-    // Input image buffers
-    uint8_t* d_left_image;                        // Left image device pointer
-    uint8_t* d_right_image;                       // Right image device pointer
-
-    // Processed images
-    float* d_left_float;                          // Left image as normalized float
-    float* d_right_float;                         // Right image as normalized float
-
-    // Feature detection buffers
-    float* d_left_features;                       // Left image feature responses
-    float* d_right_features;                      // Right image feature responses
-    float2* d_left_keypoints;                     // Left image keypoint coordinates
-    float2* d_right_keypoints;                    // Right image keypoint coordinates
-    uint8_t* d_left_descriptors;                  // Left image feature descriptors
-    uint8_t* d_right_descriptors;                 // Right image feature descriptors
-
-    // Matching and homography buffers
-    int2* d_matches;                              // Feature matches (query_idx, train_idx)
-    float* d_match_distances;                     // Match distances
-    float* d_homography_matrix;                   // 3x3 homography matrix
-
-    // Warping buffers
-    uint8_t* d_warped_left;                       // Warped left image
-    uint8_t* d_warped_right;                      // Warped right image
-    float* d_warp_map_x;                         // X-coordinate warp map
-    float* d_warp_map_y;                         // Y-coordinate warp map
-
-    // Blending buffers
-    float* d_blend_weights;                       // Multi-band blending weights
-    uint8_t* d_panorama_output;                   // Final panoramic result
-
-    // Buffer metadata
-    int max_width, max_height, channels;          // Maximum buffer dimensions
-    size_t pitch;                                 // Memory pitch for 2D arrays
-    bool is_allocated;                            // Allocation status flag
-
-    StitchingGpuBuffers() : is_allocated(false) {}
-};
-
-/**
  * @brief High-performance panoramic image stitcher with CUDA acceleration
- *
- * Professional-grade panoramic stitching implementation optimized for real-time
- * embedded applications. Features robust feature matching, geometric validation,
- * multi-band blending, and comprehensive quality assessment.
  */
 class PanoramicStitcher {
 public:
@@ -235,10 +187,10 @@ public:
     /**
      * @brief Main stitching function for synchronized camera pair
      * @param frame_pair Synchronized stereo camera frames
-     * @param result Resulting panoramic image with metadata
+     * @param output Resulting panoramic image with metadata
      * @return True if stitching was successful
      */
-    bool stitch(const SynchronizedFramePair& frame_pair, PanoramicResult& result);
+    bool stitch(const SynchronizedFramePair& frame_pair, PanoramicResult& output);
 
     /**
      * @brief Overloaded stitching function for direct image input
@@ -295,22 +247,27 @@ private:
     cv::Ptr<cv::DescriptorExtractor> descriptor_extractor_;
     cv::Ptr<cv::DescriptorMatcher> descriptor_matcher_;
 
-    // Camera calibration integration
+    // Camera calibration
     std::unique_ptr<calibration::CameraCalibrator> left_calibrator_;
     std::unique_ptr<calibration::CameraCalibrator> right_calibrator_;
-    cv::Mat left_camera_matrix_, left_dist_coeffs_;
-    cv::Mat right_camera_matrix_, right_dist_coeffs_;
 
-    // GPU acceleration components
+    // GPU acceleration components - CORRECTED DECLARATIONS
     std::unique_ptr<lane_detection::TensorBuffer> gpu_input_buffer_;
     std::unique_ptr<lane_detection::TensorBuffer> gpu_output_buffer_;
-    StitchingGpuBuffers gpu_buffers_;
     cudaStream_t cuda_stream_;
 
-    // Memory management
-    std::unique_ptr<utils::MemoryPool> memory_pool_;
+    // GPU buffers management structure
+    struct GpuBuffers {
+        int max_width = 0;
+        int max_height = 0;
+        int channels = 0;
+        bool is_allocated = false;
+    } gpu_buffers_;
 
-    // Performance monitoring
+    // Memory management - CORRECTED TYPE
+    std::unique_ptr<lane_fusion::utils::MemoryPool> memory_pool_;
+
+    // Performance monitoring - CORRECTED TYPE
     std::unique_ptr<lane_detection::PerformanceMonitor> performance_monitor_;
 
     // Feature caching for optimization
@@ -321,8 +278,6 @@ private:
         std::vector<cv::KeyPoint> right_keypoints;
         bool is_valid;
         std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
-
-        FeatureCache() : is_valid(false) {}
     } feature_cache_;
 
     // State management
@@ -382,7 +337,7 @@ private:
                                     const cv::Size& total_size);
 
     /**
-     * @brief GPU memory management
+     * @brief GPU buffer management - ADDED MISSING DECLARATIONS
      */
     bool allocateGpuBuffers(int max_width, int max_height, int channels);
     void deallocateGpuBuffers();
@@ -393,7 +348,7 @@ private:
     void updateStatistics(const PanoramicResult& result);
 
     /**
-     * @brief Input validation
+     * @brief Error handling and validation
      */
     bool validateInputImages(const cv::Mat& left, const cv::Mat& right);
     bool checkCudaError(const std::string& operation);
@@ -449,90 +404,5 @@ namespace stitch_utils {
 }
 
 } // namespace camera_stitching
-
-/**
- * @brief CUDA kernel launch functions for stitching acceleration
- *
- * These C-style functions provide interfaces for launching CUDA kernels
- * from the panoramic stitcher implementation.
- */
-extern "C" {
-
-/**
- * @brief Image preprocessing kernels
- */
-cudaError_t launchUndistortImageKernel(
-    const uint8_t* d_input, uint8_t* d_output,
-    const float* d_camera_matrix, const float* d_dist_coeffs,
-    int width, int height, cudaStream_t stream);
-
-cudaError_t launchBgrToGrayscaleKernel(
-    const uint8_t* d_input, uint8_t* d_output,
-    int width, int height, float sigma, cudaStream_t stream);
-
-/**
- * @brief Feature detection kernels
- */
-cudaError_t launchOrbFeatureDetectionKernel(
-    const uint8_t* d_image, float2* d_keypoints, uint8_t* d_descriptors,
-    int* d_keypoint_count, int width, int height, int max_features,
-    float scale_factor, int n_levels, int edge_threshold, cudaStream_t stream);
-
-cudaError_t launchHarrisCornerDetectionKernel(
-    const uint8_t* d_image, float* d_corners, float2* d_keypoints,
-    int* d_keypoint_count, int width, int height, float threshold,
-    int max_keypoints, cudaStream_t stream);
-
-/**
- * @brief Feature matching kernels
- */
-cudaError_t launchBruteForceMatchingKernel(
-    const uint8_t* d_descriptors1, const uint8_t* d_descriptors2,
-    int2* d_matches, float* d_distances, int* d_match_count,
-    int desc_count1, int desc_count2, int desc_length,
-    float ratio_threshold, cudaStream_t stream);
-
-/**
- * @brief Image warping kernels
- */
-cudaError_t launchPerspectiveWarpKernel(
-    const uint8_t* d_input, uint8_t* d_output,
-    const float* d_homography, int input_width, int input_height,
-    int output_width, int output_height, int channels,
-    int interpolation_mode, cudaStream_t stream);
-
-cudaError_t launchGenerateWarpMapKernel(
-    float* d_warp_map_x, float* d_warp_map_y,
-    const float* d_homography, int width, int height, cudaStream_t stream);
-
-/**
- * @brief Image blending kernels
- */
-cudaError_t launchMultibandBlendingKernel(
-    const uint8_t* d_img1, const uint8_t* d_img2,
-    const float* d_weights1, const float* d_weights2,
-    uint8_t* d_result, int width, int height, int channels,
-    int num_bands, float blend_strength, cudaStream_t stream);
-
-cudaError_t launchLinearBlendingKernel(
-    const uint8_t* d_img1, const uint8_t* d_img2,
-    const float* d_weights, uint8_t* d_result,
-    int width, int height, int channels, cudaStream_t stream);
-
-/**
- * @brief Utility kernels
- */
-cudaError_t launchHomographyRansacKernel(
-    const float2* d_src_points, const float2* d_dst_points,
-    float* d_homography, uchar* d_inlier_mask,
-    int point_count, float threshold, float confidence,
-    int max_iterations, int* d_inlier_count, cudaStream_t stream);
-
-cudaError_t launchCalculateReprojectionErrorKernel(
-    const float2* d_src_points, const float2* d_dst_points,
-    const float* d_homography, float* d_errors,
-    int point_count, cudaStream_t stream);
-
-} // extern "C"
 
 #endif // CAMERA_STITCHING_PANORAMIC_STITCHER_HPP
