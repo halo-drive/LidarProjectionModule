@@ -44,6 +44,28 @@ public:
         ROS_INFO("Camera Stitching Node shutdown complete");
     }
 
+    bool start() {
+        if (!initialized_) {
+            ROS_ERROR("Cannot start: node not initialized");
+            return false;
+        }
+
+        // Start camera synchronizer
+        if (!synchronizer_->start()) {
+            ROS_ERROR("Failed to start camera synchronizer");
+            return false;
+        }
+
+        running_ = true;
+        ROS_INFO("Camera Stitching Node started successfully");
+
+        // Start monitoring thread for system health
+        std::thread monitoring_thread(&CameraStitchingNode::monitoringLoop, this);
+        monitoring_thread.detach();
+
+        return true;
+    }
+
     bool isInitialized() const { return initialized_; }
 
 private:
@@ -202,12 +224,11 @@ private:
 
             // Real-time mode: Skip frame if processing is falling behind
             if (enable_real_time_mode_) {
-                auto current_time = std::chrono::high_resolution_clock::now();
-                auto time_since_last = std::chrono::duration<double, std::milli>(
-                    current_time - last_processing_time_.toSec() * 1000).count();
+                ros::Time current_ros_time = ros::Time::now();
+                double time_since_last_ms = (current_ros_time - last_processing_time_).toSec() * 1000.0;
 
                 double expected_interval_ms = 1000.0 / target_fps_;
-                if (time_since_last < expected_interval_ms * 0.8) {
+                if (time_since_last_ms < expected_interval_ms * 0.8) {
                     processing_stats_.frames_skipped++;
                     return; // Skip this frame to maintain real-time performance
                 }
@@ -250,14 +271,16 @@ private:
             frame_count_++;
             last_processing_time_ = ros::Time::now();
 
-            processing_stats_.average_processing_time_ms =
-                (processing_stats_.average_processing_time_ms * (processing_stats_.successful_stitches - 1)
-                 + processing_time_ms) / processing_stats_.successful_stitches;
+            if (processing_stats_.successful_stitches > 0) {
+                processing_stats_.average_processing_time_ms =
+                    (processing_stats_.average_processing_time_ms * (processing_stats_.successful_stitches - 1)
+                     + processing_time_ms) / processing_stats_.successful_stitches;
+            }
 
             processing_stats_.max_processing_time_ms =
                 std::max(processing_stats_.max_processing_time_ms, processing_time_ms);
 
-            // Calculate current FPS
+            // Calculate current FPS using session elapsed time
             auto current_time = std::chrono::high_resolution_clock::now();
             auto elapsed_seconds = std::chrono::duration_cast<std::chrono::milliseconds>(
                 current_time - processing_stats_.session_start).count() / 1000.0;
@@ -296,7 +319,7 @@ private:
                 performance_monitor_->endTiming("total_processing");
             }
         }
-    }
+}
 
     void publishResults(const camera_stitching::PanoramicResult& result,
                        const camera_stitching::SynchronizedFramePair& frame_pair) {
@@ -455,27 +478,7 @@ private:
         }
     }
 
-    bool start() {
-        if (!initialized_) {
-            ROS_ERROR("Cannot start: node not initialized");
-            return false;
-        }
 
-        // Start camera synchronizer
-        if (!synchronizer_->start()) {
-            ROS_ERROR("Failed to start camera synchronizer");
-            return false;
-        }
-
-        running_ = true;
-        ROS_INFO("Camera Stitching Node started successfully");
-
-        // Start monitoring thread for system health
-        std::thread monitoring_thread(&CameraStitchingNode::monitoringLoop, this);
-        monitoring_thread.detach();
-
-        return true;
-    }
 
     void stop() {
         if (!running_) return;
