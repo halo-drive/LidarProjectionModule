@@ -12,9 +12,9 @@
 #include <memory>
 #include <chrono>
 
-#include "yolo_detector.hpp"
-#include "lane_segmentation.hpp"
-#include "tensor_utils.hpp"
+#include "../include/yolo_detector.hpp"
+#include "../include/lane_segmentation.hpp"
+#include "../include/tensor_utils.hpp"
 
 class LaneDetectionNode {
 public:

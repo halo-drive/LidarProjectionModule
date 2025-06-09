@@ -1,4 +1,4 @@
-#include "lane_segmentation.hpp"
+#include "../include/lane_segmentation.hpp"
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <algorithm>

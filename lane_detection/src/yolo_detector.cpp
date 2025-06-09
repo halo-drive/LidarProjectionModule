@@ -1,5 +1,5 @@
-#include "yolo_detector.hpp"
-#include "tensor_utils.hpp"
+#include "../include/yolo_detector.hpp"
+#include "../include/tensor_utils.hpp"
 #include <ros/ros.h>
 #include <ros/package.h>
 #include <iostream>

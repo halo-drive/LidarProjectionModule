@@ -1,4 +1,4 @@
-#include "lidar_processing/ground_extraction.hpp"
+#include "../include/ground_extraction.hpp"
 #include <pcl/common/common.h>
 #include <pcl/common/centroid.h>
 #include <algorithm>
